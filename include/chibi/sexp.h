@@ -110,6 +110,10 @@ typedef unsigned long size_t;
 #define SEXP_POINTER_MAGIC 0xFDCA9764uL /* arbitrary */
 #endif
 
+#ifndef SEXP_FREE_MAGIC
+#define SEXP_FREE_MAGIC 0xC97FE386uL /* arbitrary */
+#endif
+
 #if SEXP_USE_HASH_SYMS
 #define SEXP_SYMBOL_TABLE_SIZE 389
 #else
@@ -275,6 +279,9 @@ typedef struct sexp_free_list_t *sexp_free_list;
 struct sexp_free_list_t {
   sexp_uint_t size;
   sexp_free_list next;
+#if SEXP_USE_HEADER_MAGIC
+  unsigned int magic;
+#endif
 };
 
 typedef struct sexp_heap_t *sexp_heap;

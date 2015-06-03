@@ -154,6 +154,9 @@ static sexp sexp_load_image (const char* file, sexp_uint_t heap_size, sexp_uint_
       q = (sexp_free_list)(((char*)q->next) + offset);
       q->size = heap_size - heap->size;
       q->next = NULL;
+#if SEXP_USE_HEADER_MAGIC
+      q->magic = SEXP_FREE_MAGIC; /* TODO: abstract out constuction of free list nodes */
+#endif
     }
     heap->size += (heap_size - heap->size);
   }
@@ -702,7 +705,7 @@ void sexp_resume() {
 
 int main (int argc, char **argv) {
 #if SEXP_USE_PRINT_BACKTRACE_ON_SEGFAULT
-  signal(SIGSEGV, sexp_segfault_handler); 
+  signal(SIGSEGV, sexp_segfault_handler);
 #endif
   sexp_scheme_init();
   run_main(argc, argv);
