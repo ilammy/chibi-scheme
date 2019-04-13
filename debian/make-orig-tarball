@@ -1,0 +1,38 @@
+#!/bin/sh
+#
+# Prepares distribution tarball for current original source.
+# This is similar to "make dist", but makes sure that tarballs
+# do not include any transient information (like timestamps)
+# and thus are bit-by-bit reproducible.
+#
+# Run from the repository root directory:
+#
+#    ./debian/make-orig-tarball
+#
+# Find the resulting tarball "chibi-scheme_X.Y.Z.orig.tar.gz"
+# in the parent directory.
+
+export LC_ALL=C
+
+VERSION="$(cat VERSION)"
+
+TIMESTAMP="$(git log -1 --date=unix --format=%cd $(git describe --tags --abbrev=0))"
+
+mkdir -p chibi-scheme-${VERSION}
+
+for file in $(git ls-files | grep -v '^debian/')
+do
+    mkdir -p chibi-scheme-${VERSION}/$(dirname $file)
+    ln -s $PWD/$file chibi-scheme-${VERSION}/$file
+done
+
+tar --create \
+    --dereference \
+    --preserve-permissions \
+    --owner=root:0 \
+    --group=root:0 \
+    --sort=name \
+    --mtime=@$TIMESTAMP \
+    chibi-scheme-${VERSION} | gzip --no-name > ../chibi-scheme_${VERSION}.orig.tar.gz
+
+rm -r chibi-scheme-${VERSION}
