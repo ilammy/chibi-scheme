@@ -13,13 +13,16 @@
 # package maintainers to append LDFLAGS
 #export DEB_LDFLAGS_MAINT_APPEND = -Wl,--as-needed
 
+EXTRA_ARGS = $(shell cat debian/extra-make-variables.mk)
 
 %:
 	dh $@
 
+override_dh_auto_build:
+	dh_auto_build -- all libchibi-scheme.a $(EXTRA_ARGS)
 
-# dh_make generated override targets
-# This is example for Cmake (See https://bugs.debian.org/641051 )
-#override_dh_auto_configure:
-#	dh_auto_configure -- #	-DCMAKE_LIBRARY_PATH=$(DEB_HOST_MULTIARCH)
+override_db_auto_test:
+	dh_auto_test -- $(EXTRA_ARGS)
 
+override_dh_auto_install:
+	dh_auto_install -- $(EXTRA_ARGS)

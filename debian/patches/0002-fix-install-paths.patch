@@ -1,0 +1,27 @@
+Tweak library installation paths
+
+Chibi-Scheme uses nonstandard variables SOLIBDIR and BINMODDIR which are
+defined to use the same path as LIBDIR by default. However, Debian's
+build system only knows about "libdir" so these are not getting set to
+correct values.
+
+Redefine SOLIBDIR and BINMODDIR to use correct common prefix for shared
+libraries. This is important for multiarch support.
+
+--- a/Makefile.libs
++++ b/Makefile.libs
+@@ -29,10 +29,11 @@
+ PREFIX    ?= /usr/local
+ BINDIR    ?= $(PREFIX)/bin
+ LIBDIR    ?= $(PREFIX)/lib
+-SOLIBDIR  ?= $(PREFIX)/lib
+-INCDIR    ?= $(PREFIX)/include/chibi
++SOLIBDIR  ?= $(LIBDIR)
++INCLUDEDIR ?= $(PREFIX)/include
++INCDIR    ?= $(INCLUDEDIR)/chibi
+ MODDIR    ?= $(PREFIX)/share/chibi
+-BINMODDIR ?= $(PREFIX)/lib/chibi
++BINMODDIR ?= $(SOLIBDIR)/chibi
+ PKGCONFDIR ?= $(SOLIBDIR)/pkgconfig
+ MANDIR    ?= $(PREFIX)/share/man/man1
+ 

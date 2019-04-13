@@ -1,0 +1,45 @@
+Hacking ./configure for packaging
+
+Chibi-Scheme provides a "configure" script -- which actually does nothing --
+and thus debhelper thinks that we're using Autoconf. The good thing here is
+that ./configure gets passed a whole bunch of Debian-specific configuration
+options for installation paths. The bad thing is that that's the only place
+where we are to get them.
+
+Autotool's idea is that ./configure saves these variables into the generated
+Makefile (along with tons of other crap it usually does). Let's do the same
+and save the variables into temporary build directory for later stages of
+the build to consume.
+
+--- a/configure
++++ b/configure
+@@ -1,5 +1,25 @@
+-#!/bin/sh
++#!/usr/bin/perl
+ 
+-echo "Autoconf is an evil piece bloatware encouraging cargo-cult programming."
+-echo "Make, on the other hand, is a beautiful little prolog for the filesystem."
+-echo "Just run 'make'."
++use strict;
++
++open(FH, '>', 'debian/extra-make-variables.mk');
++select(FH);
++
++my $prefix;
++
++foreach my $arg (@ARGV) {
++    if ($arg =~ m/^--(.*)=(.*)$/) {
++        my $name = $1;
++        my $value = $2;
++        if ($name =~ m/^(prefix|.*dir)$/) {
++            if ($name eq 'prefix') {
++                $prefix = $value;
++            }
++            $name = uc $name;
++            $value =~ s/\$\{prefix\}/$prefix/;
++            print qq($name="$value"\n);
++        }
++    }
++}
++
++close(FH);
