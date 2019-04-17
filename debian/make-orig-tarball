@@ -18,6 +18,9 @@ VERSION="$(cat VERSION)"
 
 TIMESTAMP="$(git log -1 --date=unix --format=%cd $(git describe --tags --abbrev=0))"
 
+git clean -fxd .
+git reset --hard --quiet
+
 mkdir -p chibi-scheme-${VERSION}
 
 for file in $(git ls-files | grep -v '^debian/')
