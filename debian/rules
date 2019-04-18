@@ -19,7 +19,12 @@ EXTRA_ARGS = $(shell cat debian/extra-make-variables.mk)
 	dh $@
 
 override_dh_auto_build:
-	dh_auto_build -- all libchibi-scheme.a $(EXTRA_ARGS)
+# Build the static library first. It requires special compilation flags without
+# -fPIC and dlopen() support.
+	dh_auto_build -- libchibi-scheme.a $(EXTRA_ARGS) CLIBFLAGS= SEXP_USE_DL=0
+	make clean
+# After cleaning up the object files we can build everything else.
+	dh_auto_build -- all $(EXTRA_ARGS)
 
 # Run a bit more tests than "make test" usually does to verify
 # SRFI libraries and FFI things.
