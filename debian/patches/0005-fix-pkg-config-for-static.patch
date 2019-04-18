@@ -1,0 +1,14 @@
+Fix pkg-config file for static linkage
+
+Remove "-dl" from the private library list. Not only this is an incorrect flag
+for gcc, but we do not need libdl to be linked when using static linkage.
+
+--- a/chibi-scheme.pc.in
++++ b/chibi-scheme.pc.in
+@@ -3,5 +3,5 @@
+ Description: Minimal Scheme Implementation for use as an Extension Language
+ Version: ${version}
+ Libs: -L${libdir} -lchibi-scheme
+-Libs.private: -dl -lm
++Libs.private: -lm
+ Cflags: -I${includedir}
