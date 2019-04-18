@@ -3,3 +3,4 @@
 0003-fix-image-installation.patch
 0004-fix-meta-file-deps.patch
 0005-fix-pkg-config-for-static.patch
+0006-fix-manpage-path.patch
