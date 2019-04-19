@@ -25,6 +25,8 @@ override_dh_auto_build:
 	make clean
 # After cleaning up the object files we can build everything else.
 	dh_auto_build -- all $(EXTRA_ARGS)
+# Additionally, build the HTML documentation for Chibi and libraries.
+	make doc
 
 # Run a bit more tests than "make test" usually does to verify
 # SRFI libraries and FFI things.
