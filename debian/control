@@ -2,7 +2,7 @@ Source: chibi-scheme
 Section: unknown
 Priority: optional
 Maintainer: Alexei Lozovsky <me@ilammy.net>
-Build-Depends: debhelper (>= 11), autotools-dev
+Build-Depends: debhelper (>= 11)
 Standards-Version: 4.1.3
 Homepage: <insert the upstream URL, if relevant>
 #Vcs-Browser: https://salsa.debian.org/debian/chibi-scheme
