@@ -1,1 +1,5 @@
-usr/share/chibi/*
+usr/share/chibi/init-7.scm
+usr/share/chibi/meta-7.scm
+usr/share/chibi/chibi/*
+usr/share/chibi/scheme/*
+usr/share/chibi/srfi/*
