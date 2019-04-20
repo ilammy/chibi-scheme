@@ -1,0 +1,659 @@
+.TH SNOW-CHIBI 1 "2019-10-11" "0.8 (oxygen)" "General Commands Manual"
+.SH NAME
+snow-chibi \- Snow package manager
+
+.SH SYNOPSIS
+.SY snow-chibi
+.RI [ options ]
+.I  command
+.RI [ arguments " ...]"
+.YS
+
+.SH DESCRIPTION
+
+Chibi Scheme comes with a package manager based on
+.UR https://small.r7rs.org/wiki/Snow/
+Snow2
+.UE
+which can be used to share R7RS libraries.
+Packages are distributed as tar gzipped files called "snowballs" and may contain multiple libraries.
+
+\# TODO: expand this section a bit? examples to install SRFIs?
+
+.SH COMMANDS
+
+.SS Querying packages and status
+
+By default snow-chibi looks for packages in
+.UR http://snow-fort.org/
+the public repository
+.UE ,
+though you can customize this with the
+.B --repo
+option.
+Packages can be browsed on the site, but you can also search and query from the command-line tool. 
+
+.TP
+.B search \fIterms \fR...
+Print a list of available packages matching the given keywords.
+
+.TP
+.B show \fInames \fR...
+Show detailed information for the listed packages, which can be sexp library names or the dotted shorthand used by Chibi Scheme.
+For example,
+.EX
+snow-chibi show "(chibi match)"
+.EE
+can be shortened as
+.EX
+snow-chibi show chibi.match
+.EE .
+
+.TP
+.B status \fInames  \fR...
+Print the installed version of the given packages.
+Uninstalled packages will not be shown.
+If no names are given, prints all currently installed packages.
+
+.TP
+.B implementations
+Print the currently installed Scheme implementations supported by
+.I snow-chibi\fR.
+If an implementation is found but has an older version, a warning is printed.
+
+.SS Managing packages
+
+The basic package management functionality, installing upgrading and removing packages. 
+
+.TP
+.B install \fInames  \fR...
+Install the given packages.
+Package names can be sexp lists or use the dotted shorthand.
+Explicit names for packages are optional, as a package can always be referred to by the name of any library it contains.
+If multiple packages provide libraries with the same name, you will be asked to confirm which implementation to install.
+
+.IP
+You can also bypass the repository and install a manually downloaded snowball by giving a path to that file instead of a name.
+
+.TP
+.B upgrade \fInames  \fR...
+Upgrade the packages if new versions are available.
+If no names are given, upgrades all eligible packages.
+
+.TP
+.B remove \fInames  \fR...
+Uninstalls the given packages.
+If the packages were not installed with
+.I snow-chibi
+they cannot be removed.
+
+.TP
+.B update
+.I snow-chibi
+keeps a local cache of the remote repository and updates only periodically for performance, but you can force an update with this command.
+
+.TP
+.B index \fIfiles \fR...
+If you have installed a package manually you can use this command to move the package under
+.I snow-chibi
+supervision.
+Just pass the path to the packge files containing the installed R7RS library.
+
+.SS Authoring packages
+
+Creating packages can be done with the
+.B package
+command, though other commands allow for uploading to public repositories. 
+
+.TP
+.B package \fIfiles \fR...
+Create a package snowball from the given files, which should be R7RS library files containing define-library forms.
+Include files are inferred and packaged automatically.
+You can share packages directly, or upload them to a snow repository for easy automated install.
+
+.TP
+.B upload \fIfiles \fR...
+Sign and upload to the default snow host.
+The files may either be .tgz package files, or files containing define-library forms as in the
+.B package
+command, from which packages are generated automatically.
+Before you can upload to the default host a key must be generated and registered first with the
+.B gen-key
+and
+.B reg-key
+commands.
+
+.TP
+.B gen-key
+Create a new key, with your name, email address, and optionally an RSA public key pair (disabled by default in the current implementation).
+The key is saved locally to ~/.snow/priv-key.scm.
+You need to register it with
+.B reg-key
+before it can be used for uploads.
+
+.TP
+.B reg-key
+Register your key on the default Snow host.
+
+.TP
+.B sign \fIfile
+Sign a file with your key and write it to the .sig file.
+This can be used with the verify command for testing, but otherwise is not needed as the upload command generates the signature automatically.
+
+.TP
+.B verify \fIsig-file
+Print a message verifying if a signature is valid.
+
+.SS Miscellaneous
+
+.TP
+.B help
+Prints command-line reference.
+
+.SH OPTIONS
+
+.SS General options
+
+.TP
+.BR -v ", " --verbose
+Print additional informative messages.
+
+.TP
+.BR -y ", " --always-yes
+Answer all questions with yes.
+
+.TP
+.BR -n ", " --always-no
+Answer all questions with no.
+
+.SS Implementation selection
+
+The following options are used to select implementations for which the packages are installed.
+By default the packages are installed only for Chibi Scheme.
+You can use the
+.B implementations
+command to list available implementations.
+
+.TP
+.B --impls\fR=\fIimpl1\fR,\fIimpl2\fR...
+Comma-separated list of implementations for which libraries are to be installed.
+
+Use
+.B all
+to install for all available implementations.
+
+.TP
+.B --program-implementation\fR=\fIimpl
+Implementation for which to install executable programs.
+
+.SS Package verfication
+
+The following options can be used to manually override or enforce consistency and authenticity checks for installed or uploaded packages.
+
+.TP
+.B --require-sig
+Verify signatures on packages before installing them.
+
+.TP
+.B --ignore-sig
+Do not verify package signatures when installing.
+
+.TP
+.B --ignore-digest
+Do not verify package checksums when installing.
+
+.TP
+.B --skip-digest
+Do not compute checksums when making packages if there is no signing key configured.
+
+.TP
+.B --skip-version-checks
+Do not verify implementation versions for compatibility.
+
+.TP
+.B --sign-uploads
+Sign uploaded packages with the signing key if it is configured.
+
+.SS Package installation
+
+The following options modify the default behavior of the
+.B install
+and
+.B upgrade
+commands when installing packages.
+
+.TP
+.B --skip-tests
+Do not run tests even if they are present.
+
+.TP
+.B --show-tests
+Show test output even if they are successful.
+
+.TP
+.B --install-tests
+Install test-only libraries.
+Normally these are skipped.
+
+.TP
+.B --auto-upgrade-dependencies
+Upgrade installed dependencies when newer versions are available.
+
+.TP
+.BR --use-sudo = "" { always | never | as-needed }
+Normally
+.B sudo
+is used only when necessary to install system files.
+Use this option to override the default.
+
+.SS Repository configuration
+
+The following options are used to override the defaults for custom repository configuration.
+
+.TP
+.B --host\fR=\fIURI
+Base URI of Snow repository.
+
+http://snow-fort.org is used by default.
+
+.TP
+.B --repo\fR=\fIURI\fR,\fIpath\fR...
+Comma-separated list of URIs or paths of Snow repositories.
+
+.TP
+.BR --update-strategy = "" { always | never | cache | confirm }
+Specify when to refresh repository cache.
+By default the cache is refreshed automatically every 3 hours.
+You can also force an update, prohibit any updates, or ask for an interactive prompt.
+
+.SS Key generation and registration
+
+The following options control the
+.B gen-key
+and
+.B reg-key
+commands used for generating new signature keys.
+
+.TP
+.B --name\fR=\fIstring
+Name to be associated with the key.
+If not specified, the name will be prompted interactively.
+
+.TP
+.B --email\fR=\fIstring
+Email to be associated with the key.
+If not specified, the address will be prompted interactively.
+
+.TP
+.B --uri\fR=\fIURI
+URI of the repository where
+.B reg-key
+should upload the key,
+if not the default host.
+
+.TP
+.B --gen-rsa-key
+Enable RSA key generation.
+
+.TP
+.B --bits\fR=\fInumber
+Length of RSA key to use, between 256 and 2048 bits.
+
+.TP
+.B --gen-key-in-process
+Generate RSA key without spawning a child interpreter.
+
+.SS Signature options
+
+The following options are used by the
+.B sign
+command.
+
+.TP
+.B --output\fR=\fIfilename
+Store signature in the specified file rather than using the *.sig extension with the input.
+
+.TP
+.BR --digest = "" { md5 | sha-224 | sha-256 }
+Message digest function to use.
+SHA-256 is the default.
+
+.TP
+.B --email\fR=\fIstring
+Email address to associate with the signature.
+
+.SS Package metadata
+
+The following options specify the information that
+.B package
+and
+.B upload
+commands record in the created packages.
+Most of these data fields can be reused and specified in the configuration file,
+see the
+.B EASY PACKAGING
+section for details.
+
+.TP
+.B --name\fR=\fIsexp
+Name of the package.
+Either an sexp library name or the dotted shorthand.
+
+.TP
+.B --description\fR=\fIstring
+Short textual description of the package.
+
+.TP
+.B --version\fR=\fImajor.minor.patch
+Version of the package.
+
+.TP
+.B --version-file\fR=\fIpath
+Specify a text file with the version string.
+
+If both
+.B --version
+and
+.B --version-file
+are present then
+.B --version
+takes priority.
+
+.TP
+.B --programs\fR=\fIprog1\fR,\fIprog2\fR...
+Comma-separated list of executable programs installed by this package.
+
+.TP
+.B --data-files\fR=\fIfile1\fR,\fIfile2\fR...
+Comma-separated list of extra data files installed by this package.
+
+.TP
+.B --recursive
+Recursively visit and package subdependencies as well.
+
+.TP
+.B --authors\fR=\fIauthor1\fR,\fIauthor2\fR...
+Comma-separated list of the package authors.
+Names may be followed by email addresses:
+
+.EX
+snow-chibi --authors="A. U. Thor <thor@example.com>" ...
+.EE
+
+.TP
+.B --maintainers\fR=\fImaintainter1\fR,\fImaintainter2\fR...
+Comma-separated list of the package maintainers.
+Format is the same as for the
+.B --authors
+list.
+
+.TP
+.B --license\fR=\fIname
+Package license, such as "gpl".
+Please consult the
+.UR https://small.r7rs.org/wiki/Snow/
+Snow specification
+.UE
+for the full list of supported license codes.
+
+.TP
+.B --doc-from-scribble
+Automatically generate package documentation from Scribble literate comments.
+See
+.BR chibi-doc (1)
+for details.
+
+.TP
+.B --doc\fR=\fIpath
+Explicit documentation file to include with the package.
+
+.TP
+.B --test\fR=\fIpath
+Name of the test program containing test suite to run when installing the package.
+
+.TP
+.B --test-library\fR=\fIsexp
+Name of the library in the package exporting a (run-tests) function that runs the test suite.
+
+.TP
+.B --output-dir\fR=\fIpath
+Directory where to put the resulting package.
+By default, the packages are created in the current directory.
+
+.TP
+.B --output\fR=\fIpath
+Save the resulting package under the specified name.
+
+Normally, the package file name is derived from the name and version of the package.
+Use this option to set the file name explicitly,
+it can be either a relative or an absolute path.
+
+.TP
+.B --sig-file\fR=\fIpath
+Existing signature file to use when uploading a package.
+
+.TP
+.B --uri\fR=\fIURI
+Repository where the package should be uploaded,
+if not the default host.
+
+.SS Path configuration
+
+The following options are used to override defaults for local paths used for installing packages.
+Normally these are selected automatically based on the environment and the implementation for which the package is installed.
+
+.TP
+.B --local-root-repository\fR=\fIpath
+Repository cache directory for root.
+
+\# TODO: default path
+
+.TP
+.B --local-user-repository\fR=\fIpath
+Repository cache directory for non-root users.
+
+\# TODO: default path
+
+.TP
+.B --install-prefix\fR=\fIpath
+Prefix directory for installation.
+
+\# TODO: default path
+
+.TP
+.B --install-source-dir\fR=\fIpath
+Where to install library source code.
+
+\# TODO: default path
+
+.TP
+.B --install-library-dir\fR=\fIpath
+Where to install compiled shared libraries.
+
+\# TODO: default path
+
+.TP
+.B --install-binary-dir\fR=\fIpath
+Where to install executable programs.
+
+\# TODO: default path
+
+.TP
+.B --install-data-dir\fR=\fIpath
+Where to install data files.
+
+\# TODO: default path
+
+.TP
+.B --library-extension\fR=\fIstring
+Filename extension for libraries
+(*.sld is the default for Chibi Scheme).
+
+.TP
+.B --library-separator\fR=\fIstring
+Path separator to use for library components
+("/" is the default).
+
+.TP
+.B --library-path\fR=\fIpath1\fR,\fIpath2\fR...
+Comma-separated list of additional paths to search for local libraries.
+
+.SS Installation tools
+
+The following options are used to override defaults for tools used for installing packages.
+Normally they are selected automatically based on the environment and the implementation for which the package is installed.
+
+.TP      
+.BR --builder = "" { chibi | chicken | cyclone }
+Name of the builder to use for compiling libraries.
+
+.TP
+.BR --installer = "" { chicken | cyclone }
+Name of the installer to use for library files.
+
+.TP
+.BR --program-builder = "" { chicken | cyclone }
+Name of the program builder to use for executables.
+
+.TP
+.B --scheme-script\fR=\fIcommand
+Shell command to use for running Scheme scripts.
+You can pass additional arguments by separating them with spaces,
+for example:
+
+.EX
+snow-chibi --scheme-script="chibi-scheme -s" install ...
+.EE
+
+.TP
+.B --scheme-program-command\fR=\fIcommand
+Shell command to use for running Scheme programs.
+You can pass additional arguments by separating them with spaces,
+like in
+.B --scheme-script\fR.
+
+.TP
+.B --chibi-path\fR=\fIpath
+Path to Chibi Scheme executable.
+
+By default
+.B chibi-scheme
+is expected to be available.
+
+.TP
+.B --cc\fR=\fIpath
+Path to C compiler.
+
+This overrides the
+.B CC
+environment variable.
+
+.TP
+.B --cflags\fR=\fIflags
+Additional flags for the C compiler.
+
+This overrides the
+.B CFLAGS
+environment variable.
+
+.SS Miscellaneous
+
+.TP
+.B --use-curl
+Use cURL for file uploads.
+Make sure that it is installed and available as
+.B curl
+in the search path.
+
+.TP
+.B --sexp
+Output information in machine-readable sexp format instead of the default human-readable output.
+
+.SH EASY PACKAGING
+
+To encourage sharing code it's important to make it as easy as possible to create packages, while encouraging documentation and tests.
+In particular, you should never need to duplicate information anywhere.
+Thus the
+.B package
+command automatically locates and packages include files (and data, and FFI files) and determines dependencies for you.
+In addition, it can automatically handle versions, docs and tests:
+
+.RS 4
+.IP \(bu 3
+version can come explicitly from the
+.B --version
+option, or the
+.B --version-file=\fIfile
+option
+.RE
+.RS 4
+.IP \(bu 3
+docs can come explicitly from the
+.B --doc=\fIfile
+option, or be extracted automatically from literate documentation with
+.B --doc-for-scribble
+.RE
+.RS 4
+.IP \(bu 3
+tests can come either explicitly from the
+.B --test=\fIprogram
+option, or the
+.B --test-library=\fIlib-name
+which will generate a program to run just the run-tests thunk in that library
+.RE
+
+Other useful meta-info options include:
+
+.TP
+.B --authors
+comma-delimited list of the package authors
+
+.TP
+.B --maintainers
+comma-delimited list of the package maintainers
+
+.TP
+.B --license
+the package license
+
+.PP
+These three are typically always the same, so it's useful to save them in your ~/.snow/config.scm file.
+This file contains a single sexp and can specify any option, for example:
+
+.EX
+((repository-uri "http://alopeke.gr/repo.scm")
+ (command
+  (package
+   (authors "Socrates <hemlock@aol.com>")
+   (doc-from-scribble #t)
+   (version-file "VERSION")
+   (test-library (append-to-last -test))
+   (license gpl))))
+.EE
+
+Top-level snow options are represented as a flat alist.
+Options specific to a command are nested under (command (\fIname\fR ...)), with most options here being for package.
+Here unless overridden on the command-line, all packages will use the given author and license,
+try to extract literate docs from the code, look for a version in the file named "VERSION",
+and try to find a test suite with the same library name appended with -test;
+e.g. for the library (socratic method), the test library would be (socratic method-test).
+This form is an alternate to using an explicit test-library name, and encourages you to keep your tests close to the code they test.
+In the typical case, if using these conventions, you can thus simply run
+.B snow-chibi package \fIlib-file
+without any other options.
+
+Use can use the
+.B SNOW_CHIBI_CONFIG
+environment variable to specify the path to the configuration file explicitly, rather than using the default ~/.snow/config.scm
+
+.SH AUTHORS
+Alex Shinn
+
+.SH REPORTING BUGS
+Please report bugs
+.UR https://github.com/ashinn/chibi-scheme
+on Github
+.UE .
+
+.SH SEE ALSO
+.BR chibi-scheme (1)

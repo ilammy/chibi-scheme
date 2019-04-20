@@ -1,0 +1,52 @@
+.TH CHIBI-FFI 1 "2019-04-24" "0.8 (oxygen)" "General Commands Manual"
+.SH NAME
+chibi-ffi \- generate C from Scheme stub files
+
+.SH SYNOPSIS
+.SY chibi-ffi
+.OP \-c
+.OP \-f cflags
+.I input.stub
+.RI [ output.c ]
+.YS
+
+.SH DESCRIPTION
+.B chibi-ffi
+reads in the C function FFI definitions from an input file
+and outputs appropriate C wrappers into a file
+with the same base name and the ".c" extension
+(unless specified otherwise).
+You can then compile that C file into a shared library:
+
+.IP
+.EX
+chibi-ffi file.stub
+cc -fPIC -shared file.c -lchibi-scheme
+.EE
+.RE
+
+If the
+.B -c
+option is specified
+then
+.I chibi-ffi
+attempts compiling the generated C code for you in one step.
+In this case,
+additional flags for the C compiler may be given with the
+.B -f
+option.
+
+The FFI syntax is described in the manual
+(/usr/share/doc/chibi-scheme-doc/chibi.html, "C FFI" section).
+
+.SH AUTHORS
+Alex Shinn
+
+.SH REPORTING BUGS
+Please report bugs
+.UR https://github.com/ashinn/chibi-scheme
+on Github
+.UE .
+
+.SH SEE ALSO
+.BR chibi-scheme (1)
