@@ -1,0 +1,4 @@
+usr/include/*
+usr/lib/*/libchibi-scheme.a
+usr/lib/*/libchibi-scheme.so
+usr/lib/*/pkgconfig/*

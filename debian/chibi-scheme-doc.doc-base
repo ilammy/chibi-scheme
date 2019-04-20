@@ -1,0 +1,9 @@
+Document: chibi-scheme
+Title: Chibi Scheme Manual
+Author: Alex Shinn
+Abstract: This manual describes Chibi Scheme features, interfaces, their usage, and built-in libraries.
+Section: Programming
+
+Format: HTML
+Index: /usr/share/doc/chibi-scheme-doc/chibi.html
+Files: /usr/share/doc/chibi-scheme-doc/chibi.html /usr/share/doc/chibi-scheme-doc/lib/chibi/*.html /usr/share/doc/chibi-scheme-doc/lib/chibi/crypto/*.html /usr/share/doc/chibi-scheme-doc/lib/chibi/monad/*.html /usr/share/doc/chibi-scheme-doc/lib/chibi/show/*.html
