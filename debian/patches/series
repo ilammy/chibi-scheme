@@ -4,3 +4,4 @@
 0004-fix-meta-file-deps.patch
 0005-fix-pkg-config-for-static.patch
 0006-fix-manpage-path.patch
+0007-disable-snow-image.patch
