@@ -1,5 +1,6 @@
 chibi-scheme (0.8.0-1) unstable; urgency=medium
 
-  * Initial Release.
+  * Initial release. (Closes: #928753: ITP: chibi-scheme -- embeddable
+    Scheme interpreter)
 
  -- Alexei Lozovsky <me@ilammy.net>  Sat, 13 Apr 2019 00:06:21 +0300
