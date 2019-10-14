@@ -1,0 +1,17 @@
+Use correct cache location for snow-chibi
+
+On Debian systems package managers should use the /var/cache directory
+for their caches. snow-chibi uses /usr/local when being run as root.
+This is not acceptable and we should use a different directory.
+
+--- a/lib/chibi/snow/commands.scm
++++ b/lib/chibi/snow/commands.scm
+@@ -1122,7 +1122,7 @@
+   (cond
+    ((zero? (current-user-id))
+     (or (conf-get cfg 'local-root-repository)
+-        "/usr/local/share/snow/repo"))
++        "/var/cache/snow/repo"))
+    (else
+     (or (conf-get cfg 'local-user-repository)
+         (make-path (conf-get-snow-dir cfg) "repo")))))
