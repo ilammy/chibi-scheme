@@ -31,7 +31,7 @@ override_dh_auto_build:
 # Run a bit more tests than "make test" usually does to verify
 # SRFI libraries and FFI things.
 override_dh_auto_test:
-	dh_auto_test -- test-all $(EXTRA_ARGS)
+	dh_auto_test -- test-all test-unicode $(EXTRA_ARGS)
 
 override_dh_auto_install:
 	dh_auto_install -- $(EXTRA_ARGS)
