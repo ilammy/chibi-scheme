@@ -6,3 +6,4 @@
 0006-fix-manpage-path.patch
 0007-disable-snow-image.patch
 0008-fix-snow-chibi-cache-location.patch
+0009-fix-snow-install-directory.patch
