@@ -1,0 +1,99 @@
+_chibi_modules()
+{
+    # Look in current chibi-scheme module search path. This does
+    # not quite work for paths with whitepace so don't use it ;)
+    # Consider all arguments as well, they may be absolute paths.
+    local modules="$(chibi-scheme -q -e '
+        (for-each (lambda (p) (display p) (newline))
+          (current-module-path) )')"
+    for dir in $modules "$@"
+    do
+        # "path/to/library.sld" is (path to library) in Chibi,
+        # which is written as "path.to.library" on command line.
+        # Cut out prefix added by find and the *.sld extension.
+        find "$dir" -name '*.sld' 2>/dev/null \
+            | sed "s~$dir/~~;s~\\.sld\$~~;s~/~.~g"
+    done | sort -u
+}
+
+_chibi_scheme()
+{
+    local curr prev
+    local opts="-V -q -Q -r -R -s -f -T -h -I -A -D -m -x -l -e -p -t -d -i"
+    local sizes="1M 2M 4M 8M 16M 32M 64M 128M 256M 512M 1G 2G 4G"
+
+    COMPREPLY=()
+
+    # Normally there are no space between the option and argument
+    curr="${COMP_WORDS[COMP_CWORD]}"
+    case "$curr" in
+      -[mxRt]*)
+        COMPREPLY=( $(compgen -W "$(_chibi_modules | sed 's/^/${curr:0:2}/')" -- "$curr") )
+        return 0
+        ;;
+      -[ldi]*)
+        compopt -o nospace
+        COMPREPLY=( $(compgen -f -- "${curr:2}" | sed "s~^~${curr:0:2}~") )
+        return 0
+        ;;
+      -[AI]*)
+        compopt -o nospace
+        COMPREPLY=( $(compgen -d -- "${curr:2}" | sed "s~^~${curr:0:2}~") )
+        return 0
+        ;;
+      -h*)
+        # Allow one slash, specifying maximum heap size
+        if [[ "$curr" == */* && "${curr#*/}" == "${curr##*/}" ]]
+        then
+            COMPREPLY=( $(compgen -W "$sizes" -- "${curr##*/}" | sed "s~^~${curr%/*}/~") )
+        else
+            COMPREPLY=( $(compgen -W "$sizes" -- "${curr#-h}" | sed 's/^/-h/') )
+        fi
+        return 0
+        ;;
+      -)
+        COMPREPLY=( $(compgen -W "$opts" -- "$curr") )
+        return 0
+        ;;
+      -*)
+        return 0
+        ;;
+    esac
+
+    # Chibi allows options to be separated by a space, check previous word
+    prev="${COMP_WORDS[COMP_CWORD-1]}"
+    case "$prev" in
+      -[mxRt])
+        COMPREPLY=( $(compgen -W "$(_chibi_modules)" -- "$curr") )
+        return 0
+        ;;
+      -[ldi])
+        COMPREPLY=( $(compgen -f -- "$curr") )
+        return 0
+        ;;
+      -[AI])
+        COMPREPLY=( $(compgen -d -- "$curr") )
+        return 0
+        ;;
+      -h)
+        # Allow one slash, specifying maximum heap size
+        if [[ "$curr" == */* && "${curr#*/}" == "${curr##*/}" ]]
+        then
+            COMPREPLY=( $(compgen -W "$sizes" -- "${curr##*/}" | sed "s~^~${curr%/*}/~") )
+        else
+            COMPREPLY=( $(compgen -W "$sizes" -- "$curr") )
+        fi
+        return 0
+        ;;
+      -[rDep])
+        # Explicitly provide no completions for these options because
+        # they take non-files as arguments (S-expressions, tags, etc.)
+        return 0
+        ;;
+    esac
+
+    # If that's no known option then complete a filename vOv
+    COMPREPLY=( $(compgen -f -- "$curr") )
+    return 0
+}
+complete -F _chibi_scheme chibi-scheme

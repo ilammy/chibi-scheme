@@ -1,0 +1,271 @@
+_snow_available_packages()
+{
+    # FIXME: Snow keeps a local cache of repo data but it cannot be accessed
+    # right now so we cannot list all packages that can be installed.
+    #
+    # It would also be nice to list only local packages for faster completion
+    # we'll need an option in Snow for that. In _snow_installed_packages too.
+    echo
+}
+
+_snow_installed_packages()
+{
+    # Replace sexp syntax with command-line shorthand to avoid quoting
+    snow-chibi status | sed 's/^(//;s/).*$//;s/ /./g' | sort -u
+}
+
+_snow_chibi()
+{
+    local curr="${COMP_WORDS[COMP_CWORD]}"
+    local prev="${COMP_WORDS[COMP_CWORD-1]}"
+    local commands=(
+        # Querying packages and status
+        search show status implementations
+        # Managing packages
+        install upgrade remove update index
+        # Authoring packages
+        package upload gen-key reg-key sign verify
+        # Miscellaneous
+        help
+    )
+    local opts=(
+        # General options
+        -v --verbose -y --always-yes -n --always-no
+        # Implementation selection
+        --impls --program-implementation
+        # Package verification
+        --require-sig --ignore-sig --ignore-digest --skip-digest
+          --skip-version-checks --sign-uploads
+        # Package installation
+        --skip-tests --show-tests --install-tests --auto-upgrade-dependencies
+          --use-sudo
+        # Repository configuration
+        --host --repo --update-strategy
+        # Key generation and registration
+        --gen-rsa-key --gen-key-in-process
+          --name --email --uri --bits
+        # Signature options
+        --output --digest
+        # Package metadata
+        --description --version --version-file --programs --data-files
+          --authors --maintainers --license --doc --test --test-library
+          --output-dir --output --sig-file
+          --recursive --doc-from-scribble
+        # Path configuration
+        --local-root-repository --local-user-repository --install-prefix
+          --install-source-dir --install-library-dir --install-binary-dir
+          --install-data-dir --install-extension --library-separator
+          --library-path
+        # Installation tools
+        --builder --installer --program-builder --scheme-script
+          --scheme-program-command --chibi-path --cc --cflags
+        # Miscellaneous
+        --use-curl --sexp
+    )
+    # Other values are supported but we use secure defaults
+    local digests=( sha-256 )
+    local rsa_bits=( 2048 4096 )
+    # The spec -- https://small.r7rs.org/wiki/Snow/ -- requires at least
+    # the following, but repositories might accept other values encoded
+    # as sexpr lists
+    local licenses=( gpl2 gpl3 lgpl mit bsd artistic apache public-domain )
+
+    COMPREPLY=()
+
+    # First let's see if we are completing an option, they can appear anywhere
+    if [[ "$curr" == -* ]]
+    then
+        COMPREPLY=( $(compgen -W "${opts[*]}" -- "$curr") )
+        return 0
+    fi
+
+    # Now look if the previous word is an option that might require argument.
+    # Note that equals sign is considered a word-breaker thus space-separated
+    # and equals-separated options are completed the following way:
+    #                       -2      -1      0
+    # --path<tab>                           --path 
+    # --path <tab>                  --path  <empty>
+    # --path candleja<tab>          --path  candleja
+    # --path=<tab>                  --path  =
+    # --path=candleja<tab>  --path  =       candleja
+    if [[ "$prev" == "=" && "${COMP_WORDS[COMP_CWORD-2]}" == --* ]]
+    then
+       prev="${COMP_WORDS[COMP_CWORD-2]}"
+    fi
+    [[ "$curr" == "=" ]] && curr=
+    case "$prev" in
+      # Options that list impementations
+      --impls)
+        # comma-separated list
+        prev="${curr%,*}"
+        [[ "$prev" == "$curr" ]] && prev=
+        [[ ! -z "$prev" ]] && prev="$prev,"
+        curr="${curr##*,}"
+        COMPREPLY=( $(compgen -W "$(snow-chibi implementations) all" -- "$curr" | sed "s~^~$prev~") )
+        return 0
+        ;;
+      --program-implementation)
+        COMPREPLY=( $(compgen -W "$(snow-chibi implementations)" -- "$curr") )
+        return 0
+        ;;
+
+      # Options that require a choice from a fixed list
+      --use-sudo)
+        COMPREPLY=( $(compgen -W "always never as-needed" -- "$curr") )
+        return 0
+        ;;
+      --update-strategy)
+        COMPREPLY=( $(compgen -W "always never cache confirm" -- "$curr") )
+        return 0
+        ;;
+      --bits)
+        COMPREPLY=( $(compgen -W "${rsa_bits[*]}" -- "$curr") )
+        return 0
+        ;;
+      --digest)
+        COMPREPLY=( $(compgen -W "${digests[*]}" -- "$curr") )
+        return 0
+        ;;
+      --license)
+        COMPREPLY=( $(compgen -W "${licenses[*]}" -- "$curr") )
+        return 0
+        ;;
+      --builder)
+        COMPREPLY=( $(compgen -W "chibi chicken cyclone" -- "$curr") )
+        return 0
+        ;;
+      --installer|--program-builder)
+        COMPREPLY=( $(compgen -W "chicken cyclone" -- "$curr") )
+        return 0
+        ;;
+
+      # Suggest the default values used by Chibi to give an example
+      --library-extension)
+        COMPREPLY=( $(compgen -W "sld" -- "$curr") )
+        return 0
+        ;;        
+      --library-separator)
+        COMPREPLY=( $(compgen -W "/" -- "$curr") )
+        return 0
+        ;;        
+
+      # Options that contain freeform data that we can't complete
+      --host|--repo|--uri)
+        return 0
+        ;;
+      --name|--email)
+        # may be used without options at all
+        ;;
+      --description|--version|--programs|--data-files|\
+      --authors|--maintainers|--test-library|--scheme-script|\
+      --scheme-program-command)
+        return 0
+        ;;
+
+      # Options that require a file or directory name
+      --output|--version-file|--doc|--test|--sig-file|--chibi-path|--cc)
+        COMPREPLY=( $(compgen -f -- "$curr") )
+        return 0
+        ;;
+      --output-dir|--local-root-repository|--local-user-repository|\
+      --install-prefix|--install-source-dir|--install-library-dir|\
+      --install-binary-dir|--install-data-dir)
+        COMPREPLY=( $(compgen -d -- "$curr") )
+        return 0
+        ;;
+      --library-path)
+        # comma-separated list
+        prev="${curr%,*}"
+        [[ "$prev" == "$curr" ]] && prev=
+        [[ ! -z "$prev" ]] && prev="$prev,"
+        curr="${curr##*,}"
+        COMPREPLY=( $(compgen -f -- "$curr" | sed "s~^~$prev~") )
+        return 0
+        ;;
+    esac
+
+    # Now do a quick scan to find what command we are dealing with.
+    # Take care to skip options *and* their arguments. Inspect words
+    # up to but not including the current one.
+    curr="${COMP_WORDS[COMP_CWORD]}"
+    prev=
+    local i
+    for (( i = 1; i < COMP_CWORD; i++ ))
+    do
+        case "${COMP_WORDS[i]}" in
+          # These options have arguments, skip the arguments too
+          --impls|--program-implementation|\
+          --use-sudo|--host|--repo|--update-strategy|--name|--email|--uri|\
+          --bits|--output|--output-dir|--digest|--sig-file|\
+          --description|--version|--version-file|--programs|--data-files|\
+          --authors|--maintainers|--license|--doc|--test|--test-library|\
+          --local-root-repository-path|--local-user-repository-path|\
+          --install-prefix|--install-source-dir|--install-library-dir|\
+          --install-binary-dir|\
+          --library-extension|--library-separator|--library-path)
+            i=$(( i + 1 ))
+            ;;
+          # Simply skip all other options
+          -*)
+            ;;
+          # Otherwise this should be a command word
+          *)
+            # unless it is an equals sign which is parsed as a separate word
+            # between an option and its argument, skip them all
+            if [[ "${COMP_WORDS[i]}" == "=" && "${COMP_WORDS[i-1]}" == --* ]]
+            then
+                i=$(( i + 1 ))
+            else
+                prev="${COMP_WORDS[i]}"
+                break
+            fi
+            ;;
+        esac
+    done
+
+    # If there is no previous command then we are completing one right now
+    if [[ -z "$prev" ]]
+    then
+        COMPREPLY=( $(compgen -W "${commands[*]}" -- "$curr") )
+        return 0
+    fi
+
+    # Otherwise look at what we are dealing with...
+    case "$prev" in
+      # Expecting a name of available package, or several
+      show)
+        COMPREPLY=( $(compgen -W "$(_snow_available_packages)" -- "$curr") )
+        return 0
+        ;;
+      # Expecting a name of available package, or a file name, or several
+      install)
+        COMPREPLY=( $(compgen -f -W "$(_snow_available_packages)" -- "$curr") )
+        return 0
+        ;;
+      # Expecting a name of already installed package, or several
+      upgrade|remove|status)
+        COMPREPLY=( $(compgen -W "$(_snow_installed_packages)" -- "$curr") )
+        return 0
+        ;;
+      # Expecting a package file name, or several
+      index|package|upload|verify)
+        COMPREPLY=( $(compgen -f -- "$curr") )
+        return 0
+        ;;
+      # Expecting package keywords
+      search)
+        # FIXME: keyword completion, somehow?
+        return 0
+        ;;
+      # Help command expects command names
+      help)
+        COMPREPLY=( $(compgen -W "${commands[*]}" -- "$curr") )
+        return 0
+        ;;
+      # And these commands take no arguments
+      implementations|update|gen-key|reg-key)
+        return 0
+        ;;
+    esac
+}
+complete -F _snow_chibi snow-chibi

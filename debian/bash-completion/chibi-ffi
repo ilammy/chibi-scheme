@@ -1,0 +1,30 @@
+_chibi_ffi()
+{
+    local curr="${COMP_WORDS[COMP_CWORD]}"
+    local prev="${COMP_WORDS[COMP_CWORD-1]}"
+    local opts="-c -f"
+
+    COMPREPLY=()
+
+    # Check if we're completing an option
+    case "$curr" in
+      -)
+        COMPREPLY=( $(compgen -W "$opts" -- "$curr") )
+        return 0
+        ;;
+      -*)
+        return 0
+        ;;
+    esac
+
+    # -f option must be followed by C flags, don't complete them.
+    if [[ "$prev" == "-f" ]]
+    then
+        return 0
+    fi
+
+    # Otherwise suggest a file name
+    COMPREPLY=( $(compgen -f -- "$curr") )
+    return 0
+}
+complete -F _chibi_ffi chibi-ffi

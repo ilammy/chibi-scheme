@@ -1,0 +1,76 @@
+_chibi_modules()
+{
+    # Look in current chibi-scheme module search path. This does
+    # not quite work for paths with whitepace so don't use it ;)
+    # Consider all arguments as well, they may be absolute paths.
+    local modules="$(chibi-scheme -q -e '
+        (for-each (lambda (p) (display p) (newline))
+          (current-module-path) )')"
+    for dir in $modules "$@"
+    do
+        # "path/to/library.sld" is (path to library) in Chibi,
+        # which is written as "path.to.library" on command line.
+        # Cut out prefix added by find and the *.sld extension.
+        find "$dir" -name '*.sld' 2>/dev/null \
+            | sed "s~$dir/~~;s/\\.sld\$//;s~/~.~g"
+    done | sort -u
+}
+
+_chibi_doc()
+{
+    local curr="${COMP_WORDS[COMP_CWORD]}"
+    local prev="${COMP_WORDS[COMP_CWORD-1]}"
+    local opts=( -h -s -t )
+
+    # Exclude non-repeatable options that are already used
+    local i
+    for ((i = 1; i < COMP_CWORD; i++))
+    do
+        local word="${COMP_WORDS[$i]}"
+        if [[ "$word" == -* ]]
+        then
+            opts=( "${opts[@]/$word}" )
+        fi
+    done
+
+    COMPREPLY=()
+
+    # Check if we're completing an option
+    case "$curr" in
+      -)
+        COMPREPLY=( $(compgen -W "${opts[*]}" -- "$curr") )
+        return 0
+        ;;
+      -*)
+        return 0
+        ;;
+    esac
+
+
+    # If previous word is a valid file name then we're documenting a file.
+    # chibi-doc accepts only one file argument so no further completions.
+    #
+    # Edge cases: ignore when completing the first word as "chibi-doc" may
+    # exist, and allow completion when current directory contains a file
+    # with a name like an option.
+    if [[ "$COMP_CWORD" != 1 && -f "$prev" && "$prev" != -* ]]
+    then
+        return 0
+    fi
+
+    # If previous word is a valid module name then we're documenting a module.
+    # It may be optionally followed by a single identifier, but it's hard to
+    # list exported identifiers for completion -- therefore just shut up.
+    #
+    # Edge cases: if we're competing the first word, just in case "chibi-doc"
+    # ends up a valid module name somehow.
+    if [[ "$COMP_CWORD" != 1 ]] && ( _chibi_modules | grep -xq -e "$prev" )
+    then
+        return 0
+    fi
+
+    # Otherwise, complete a file name or a module name
+    COMPREPLY=( $(compgen -f -W "$(_chibi_modules)" -- "$curr") )
+    return 0
+}
+complete -F _chibi_doc chibi-doc
