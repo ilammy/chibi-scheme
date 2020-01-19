@@ -3,3 +3,4 @@ usr/share/chibi/meta-7.scm
 usr/share/chibi/chibi/*
 usr/share/chibi/scheme/*
 usr/share/chibi/srfi/*
+usr/share/chibi/.*.meta
