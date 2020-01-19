@@ -1,27 +1,4 @@
 libchibi-scheme.so.0 libchibi-scheme0 #MINVER#
- _huff_tab10@Base 0.8.0
- _huff_tab11@Base 0.8.0
- _huff_tab12@Base 0.8.0
- _huff_tab13@Base 0.8.0
- _huff_tab14@Base 0.8.0
- _huff_tab15@Base 0.8.0
- _huff_tab16@Base 0.8.0
- _huff_tab17@Base 0.8.0
- _huff_tab18@Base 0.8.0
- _huff_tab19@Base 0.8.0
- _huff_tab1@Base 0.8.0
- _huff_tab20@Base 0.8.0
- _huff_tab21@Base 0.8.0
- _huff_tab2@Base 0.8.0
- _huff_tab3@Base 0.8.0
- _huff_tab4@Base 0.8.0
- _huff_tab5@Base 0.8.0
- _huff_tab6@Base 0.8.0
- _huff_tab7@Base 0.8.0
- _huff_tab8@Base 0.8.0
- _huff_tab9@Base 0.8.0
- gc_heap_err_str@Base 0.8.0
- load_image_header@Base 0.8.0
  sexp_acos@Base 0.8.0
  sexp_add@Base 0.8.0
  sexp_add_module_directory_op@Base 0.8.0
