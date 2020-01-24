@@ -1,0 +1,10 @@
+#!/bin/sh
+#
+# Smoke-test of chibi-doc binary
+
+set -eu
+
+chibi-doc -t chibi.scribble | grep -q 'A library used for parsing "scribble" format'
+echo -n .
+
+echo

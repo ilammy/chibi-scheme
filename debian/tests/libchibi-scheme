@@ -1,0 +1,64 @@
+#!/bin/sh
+#
+# Smoke-test of chibi-scheme embedding
+
+set -eu
+
+AUTOPKGTEST_TMP=${AUTOPKGTEST_TMP:-$(mktemp -d)}
+cd "$AUTOPKGTEST_TMP"
+
+cat > test.c <<EOF
+#include <stdio.h>
+
+#include <chibi/eval.h>
+
+static const char *define_fact =
+        "(define (fact n)"
+        "  (let loop ((r 1) (n n))"
+        "    (if (<= n 0) r"
+        "        (loop (* r n) (- n 1)) ) ) )";
+
+static void define_and_print_fact(sexp ctx)
+{
+        sexp_gc_var2(expr, res);
+        sexp_gc_preserve2(ctx, expr, res);
+
+        sexp_eval_string(ctx, define_fact, -1, NULL);
+
+        expr = sexp_cons(ctx, sexp_intern(ctx, "fact", -1),
+                sexp_cons(ctx, sexp_make_fixnum(5), SEXP_NULL));
+
+        res = sexp_eval(ctx, expr, NULL);
+
+        if (sexp_fixnump(res)) {
+                printf("%ld\n", sexp_unbox_fixnum(res));
+        } else {
+                fprintf(stderr, "*** (fact 5) is not a fixnum\n");
+        }
+
+        sexp_gc_release2(ctx);
+}
+
+int main(int argc, char **argv)
+{
+        sexp ctx;
+
+        sexp_scheme_init();
+
+        ctx = sexp_make_eval_context(NULL, NULL, NULL, 0, 0);
+        sexp_load_standard_env(ctx, NULL, SEXP_SEVEN);
+        sexp_load_standard_ports(ctx, NULL, stdin, stdout, stderr, 1);
+        define_and_print_fact(ctx);
+        sexp_destroy_context(ctx);
+}
+EOF
+
+cc -o test-dynamic test.c -lchibi-scheme
+test "$(./test-dynamic)" = "120"
+echo -n .
+
+cc -o test-static test.c -lchibi-scheme -lm -static
+test "$(./test-static)" = "120"
+echo -n .
+
+echo

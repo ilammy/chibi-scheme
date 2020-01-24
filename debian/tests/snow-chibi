@@ -1,0 +1,18 @@
+#!/bin/sh
+#
+# Smoke-test of snow-chibi package manager
+
+set -eu
+
+# (chibi sqlite3) contains both Scheme and native code so it's a good
+# candidate for testing all Snow components
+snow-chibi install chibi.sqlite3
+echo -n .
+
+chibi-scheme -q -e '(import (chibi sqlite3))'
+echo -n .
+
+snow-chibi remove chibi.sqlite3
+echo -n .
+
+echo

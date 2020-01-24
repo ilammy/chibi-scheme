@@ -1,0 +1,20 @@
+#!/bin/sh
+#
+# Smoke-test of chibi-ffi embedding
+
+set -eu
+
+AUTOPKGTEST_TMP=${AUTOPKGTEST_TMP:-$(mktemp -d)}
+cd "$AUTOPKGTEST_TMP"
+
+cat > test.stub <<EOF
+(c-declare "int ffi_add(int a, int b);")
+(define-c int (add "ffi_add") (int int))
+EOF
+
+chibi-ffi test.stub
+cc -o test.so -fPIC -shared test.c -lchibi-scheme
+nm -D test.so | grep -q 'U ffi_add'
+echo -n .
+
+echo

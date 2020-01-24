@@ -1,0 +1,29 @@
+#!/bin/sh
+#
+# Smoke-test of chibi-scheme interpreter
+
+set -eu
+
+AUTOPKGTEST_TMP=${AUTOPKGTEST_TMP:-$(mktemp -d)}
+cd "$AUTOPKGTEST_TMP"
+
+test "$(chibi-scheme -q -p '(+ 1 2)')" = "3"
+echo -n .
+
+cat > test.scm <<EOF
+(import (scheme base)
+        (scheme write) )
+
+(define (fact n)
+  (let loop ((r 1) (n n))
+    (if (<= n 0) r
+        (loop (* r n) (- n 1)) ) ) )
+
+(display (fact 5))
+(newline)
+EOF
+
+test "$(chibi-scheme test.scm)" = "120"
+echo -n .
+
+echo
