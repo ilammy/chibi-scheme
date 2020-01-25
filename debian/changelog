@@ -1,4 +1,4 @@
-chibi-scheme (0.8.0-1ppa1~ubuntu18.04~rc1) UNRELEASED; urgency=medium
+chibi-scheme (0.8.0-1ppa1~ubuntu18.04~rc1) bionic; urgency=medium
 
   * Repackage for Ubuntu 18.04 LTS Bionic Beaver.
     - Downgrade debhelper ==> 11
@@ -6,7 +6,7 @@ chibi-scheme (0.8.0-1ppa1~ubuntu18.04~rc1) UNRELEASED; urgency=medium
       produce these warnings and does not understand pragmas yet
     - Suppress Lintian warnings about newer Debian Policy compliance
 
- -- Alexei Lozovsky <me@ilammy.net>  Sat, 25 Jan 2020 15:02:27 +0200
+ -- Alexei Lozovsky <me@ilammy.net>  Sat, 25 Jan 2020 15:23:03 +0200
 
 chibi-scheme (0.8.0-1) UNRELEASED; urgency=medium
 
