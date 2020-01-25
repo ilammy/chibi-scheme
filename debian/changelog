@@ -1,3 +1,9 @@
+chibi-scheme (0.8.0-1ppa1~ubuntu16.04~rc1) UNRELEASED; urgency=medium
+
+  * Repackage for Ubuntu 16.04 LTS Xenial Xerus.
+
+ -- Alexei Lozovsky <me@ilammy.net>  Sat, 25 Jan 2020 14:44:48 +0200
+
 chibi-scheme (0.8.0-1) UNRELEASED; urgency=medium
 
   * Initial release. (Closes: #928753: ITP: chibi-scheme -- embeddable
