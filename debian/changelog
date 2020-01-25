@@ -1,4 +1,4 @@
-chibi-scheme (0.8.0-1ppa1~ubuntu14.04~rc1) UNRELEASED; urgency=medium
+chibi-scheme (0.8.0-1ppa1~ubuntu14.04~rc1) trusty; urgency=medium
 
   * Repackage for Ubuntu 14.04 LTS Trusty Tahr.
     - Downgrade debhelper ==> 9, uscan ==> 3
@@ -13,7 +13,7 @@ chibi-scheme (0.8.0-1ppa1~ubuntu14.04~rc1) UNRELEASED; urgency=medium
     - List packaging tests separately for compatibility with older
       (and obsolete) version of autopkgtest
 
- -- Alexei Lozovsky <me@ilammy.net>  Sat, 25 Jan 2020 13:57:22 +0200
+ -- Alexei Lozovsky <me@ilammy.net>  Sat, 25 Jan 2020 14:37:59 +0200
 
 chibi-scheme (0.8.0-1) UNRELEASED; urgency=medium
 
