@@ -1,4 +1,4 @@
-chibi-scheme (0.8.0-1ppa1~ubuntu16.04~rc1) UNRELEASED; urgency=medium
+chibi-scheme (0.8.0-1ppa1~ubuntu16.04~rc1) xenial; urgency=medium
 
   * Repackage for Ubuntu 16.04 LTS Xenial Xerus.
     - Downgrade debhelper ==> 9, uscan ==> 3
@@ -11,7 +11,7 @@ chibi-scheme (0.8.0-1ppa1~ubuntu16.04~rc1) UNRELEASED; urgency=medium
     - Suppress Lintian warnings about "chibi-scheme" interpreter
       and newer Debian Policy compliance
 
- -- Alexei Lozovsky <me@ilammy.net>  Sat, 25 Jan 2020 14:44:48 +0200
+ -- Alexei Lozovsky <me@ilammy.net>  Sat, 25 Jan 2020 14:57:05 +0200
 
 chibi-scheme (0.8.0-1) UNRELEASED; urgency=medium
 
