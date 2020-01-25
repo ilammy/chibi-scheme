@@ -1,6 +1,7 @@
 chibi-scheme (0.8.0-1ppa1~ubuntu19.04~rc1) UNRELEASED; urgency=medium
 
   * Repackage for Ubuntu 19.04 Disco Dingo.
+    - Suppress Lintian warnings about newer Debian Policy compliance
 
  -- Alexei Lozovsky <me@ilammy.net>  Sat, 25 Jan 2020 15:34:42 +0200
 

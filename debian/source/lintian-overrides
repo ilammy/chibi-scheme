@@ -1,0 +1,3 @@
+# We're fine with leaving the current Policy version for older releases.
+# Distribution incompatibilities will be fixed on ad-hoc basis.
+chibi-scheme source: newer-standards-version 4.5.0 *
