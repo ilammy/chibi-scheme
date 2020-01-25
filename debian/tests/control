@@ -1,6 +1,11 @@
-Tests: chibi-scheme, chibi-doc
+Tests: chibi-scheme
 
-Tests: chibi-ffi, libchibi-scheme
+Tests: chibi-doc
+
+Tests: chibi-ffi
+Depends: @, build-essential
+
+Tests: libchibi-scheme
 Depends: @, build-essential
 
 Tests: snow-chibi
