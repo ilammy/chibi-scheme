@@ -6,5 +6,6 @@ chibi-scheme (0.8.0-1) UNRELEASED; urgency=medium
   * Updated and extended Bash completions.
   * Disabled (experimental) images when using Snow to avoid crashes.
   * Debianized Snow installation and library search paths.
+  * Fixed a permission bug in "snow-chibi remove".
 
  -- Alexei Lozovsky <me@ilammy.net>  Fri, 24 Jan 2020 08:05:00 +0200

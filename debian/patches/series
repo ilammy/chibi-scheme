@@ -9,3 +9,4 @@
 0009-fix-snow-install-directory.patch
 0010-hide-extra-symbols.patch
 0011-suppress-cc-warnings.patch
+0012-snow-remove-use-sudo.patch
