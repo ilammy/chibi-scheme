@@ -1,6 +1,15 @@
 chibi-scheme (0.8.0-1ppa1~ubuntu16.04~rc1) UNRELEASED; urgency=medium
 
   * Repackage for Ubuntu 16.04 LTS Xenial Xerus.
+    - Downgrade debhelper ==> 9, uscan ==> 3
+    - Remove not yet supported "Rules-Requires-Root"
+    - Correct "Pre-Depends" tags for multilib support
+    - Use pre-debhelper-12 paths in "chibi-scheme-doc" package:
+      /usr/share/doc/chibi-scheme-doc (not just "chibi-scheme")
+    - Drop 0011-suppress-cc-warnings.patch as older GCC does not
+      produce these warnings and does not understand pragmas yet
+    - Suppress Lintian warnings about "chibi-scheme" interpreter
+      and newer Debian Policy compliance
 
  -- Alexei Lozovsky <me@ilammy.net>  Sat, 25 Jan 2020 14:44:48 +0200
 

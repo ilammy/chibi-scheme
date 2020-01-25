@@ -2,8 +2,7 @@ Source: chibi-scheme
 Section: lisp
 Priority: optional
 Maintainer: Alexei Lozovsky <me@ilammy.net>
-Build-Depends: debhelper-compat (= 12)
-Rules-Requires-Root: no
+Build-Depends: debhelper (>= 9)
 Standards-Version: 4.5.0
 Homepage: https://github.com/ashinn/chibi-scheme
 Vcs-Browser: https://github.com/ilammy/chibi-scheme
@@ -58,6 +57,7 @@ Description: embeddable Scheme interpreter (standard library images)
 Package: libchibi-scheme0
 Section: libs
 Architecture: any
+Pre-Depends: ${misc:Pre-Depends}
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: embeddable Scheme interpreter (shared library)
  Chibi-Scheme is a really small embeddable interpreter of R7RS Scheme,
@@ -82,6 +82,7 @@ Description: embeddable Scheme interpreter (development files)
 Package: libchibi-scheme-ffi
 Section: libs
 Architecture: any
+Pre-Depends: ${misc:Pre-Depends}
 Depends: libchibi-scheme0 (>= 0.8), ${shlibs:Depends}, ${misc:Depends}
 Recommends: chibi-scheme-common
 Description: embeddable Scheme interpreter (native modules)
