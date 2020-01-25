@@ -1,0 +1,2 @@
+# It's totally okay to use "chibi-scheme" as interpreter
+chibi-scheme: unusual-interpreter * #!chibi-scheme
