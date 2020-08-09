@@ -19,7 +19,7 @@ Maintainer guide
     Take care to preserve sequential patch numbering as well.
 
     Refer to [this guide](https://wiki.debian.org/UsingQuilt)
-    if you have troubles with `quilt`.
+    if you have troubles with **quilt**.
 
  3. **Update the changelog.**
 
@@ -46,3 +46,17 @@ Maintainer guide
     for more information on maintaining `*.symbols` files.
 
  5. **Review lintian warnings.**
+
+    During the `debuild` stage **lintian** might give out some new warnings and errors.
+    Review and resolve them as necessary.
+
+ 6. **Review news and changes.**
+
+    Unfortunately, chibi-scheme does not maintain a changelog, so keeping up is tricky.
+    Review the changes to see if there is something that might break the package,
+    or some new things that you might need to maintain from now on.
+
+    Here's a list of files which might interest you:
+
+      - `Makefile` and its sisters
+      - `include/*` for API/ABI changes
