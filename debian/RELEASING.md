@@ -60,6 +60,7 @@ Maintainer guide
 
       - `Makefile` and its sisters
       - `include/*` for API/ABI changes
+      - `tools/*` for tool CLI changes
 
  7. **Update manpages.**
 
