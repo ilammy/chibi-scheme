@@ -384,6 +384,7 @@ static sexp sexp_make_macro (sexp ctx, sexp p, sexp e) {
   sexp mac = sexp_alloc_type(ctx, macro, SEXP_MACRO);
   sexp_macro_env(mac) = e;
   sexp_macro_proc(mac) = p;
+  sexp_macro_aux(mac) = SEXP_FALSE;
   return mac;
 }
 
@@ -397,10 +398,12 @@ sexp sexp_make_synclo_op (sexp ctx, sexp self, sexp_sint_t n, sexp env, sexp fv,
     sexp_synclo_env(res) = sexp_synclo_env(expr);
     sexp_synclo_free_vars(res) = sexp_synclo_free_vars(expr);
     sexp_synclo_expr(res) = sexp_synclo_expr(expr);
+    sexp_synclo_rename(res) = sexp_synclo_rename(expr);
   } else {
     sexp_synclo_env(res) = env;
     sexp_synclo_free_vars(res) = fv;
     sexp_synclo_expr(res) = expr;
+    sexp_synclo_rename(res) = SEXP_FALSE;
   }
   return res;
 }
@@ -486,13 +489,16 @@ static void sexp_init_eval_context_bytecodes (sexp ctx) {
 #endif
 
 void sexp_init_eval_context_globals (sexp ctx) {
+  const char* no_sys_path;
   const char* user_path;
   ctx = sexp_make_child_context(ctx, NULL);
 #if ! SEXP_USE_NATIVE_X86
   sexp_init_eval_context_bytecodes(ctx);
 #endif
   sexp_global(ctx, SEXP_G_MODULE_PATH) = SEXP_NULL;
-  sexp_add_path(ctx, sexp_default_module_path);
+  no_sys_path = getenv(SEXP_NO_SYSTEM_PATH_VAR);
+  if (!no_sys_path || strcmp(no_sys_path, "0")==0)
+    sexp_add_path(ctx, sexp_default_module_path);
   user_path = getenv(SEXP_MODULE_PATH_VAR);
   if (!user_path) user_path = sexp_default_user_module_path;
   sexp_add_path(ctx, user_path);
@@ -593,30 +599,29 @@ sexp sexp_syntactic_closure_expr_op (sexp ctx, sexp self, sexp_sint_t n, sexp x)
   return (sexp_synclop(x) ? sexp_synclo_expr(x) : x);
 }
 
-#if SEXP_USE_READER_LABELS
-static int sexp_cyclic_synclop(sexp x) {
+static int sexp_contains_syntax_p_bound(sexp x, int depth) {
+  int i;
   sexp ls1, ls2;
-  if (!sexp_pairp(x))
+  if (sexp_synclop(x))
+    return 1;
+  if (depth <= 0)
     return 0;
-  for (ls1=x, ls2=sexp_id_name(sexp_cdr(ls1));
-       sexp_pairp(ls2) && sexp_pairp(sexp_id_name(sexp_cdr(ls2)));
-       ls1=sexp_id_name(sexp_cdr(ls1)),
-         ls2=sexp_id_name(sexp_cdr(sexp_id_name(sexp_cdr(ls2))))) {
-    if (ls1 == ls2 || ls1 == sexp_id_name(sexp_car(ls2)))
-      return 1;
-  }
-  for (ls1=x, ls2=sexp_id_name(sexp_car(ls1));
-       sexp_pairp(ls2) && sexp_pairp(sexp_id_name(sexp_car(ls2)));
-       ls1=sexp_id_name(sexp_car(ls1)),
-         ls2=sexp_id_name(sexp_car(sexp_id_name(sexp_car(ls2))))) {
-    if (ls1 == ls2 || ls1 == sexp_id_name(sexp_cdr(ls2)))
-      return 1;
+  if (sexp_pairp(x)) {
+    for (i=0, ls1=x, ls2=x; sexp_pairp(ls1); ls1=sexp_cdr(ls1), ls2=(i++ & 1 ? sexp_cdr(ls2) : ls2)) {
+      if (sexp_contains_syntax_p_bound(sexp_car(ls1), depth-1))
+        return 1;
+      if (i > 0 && (ls1 == ls2 || ls1 == sexp_car(ls2)))
+        return 0; /* cycle, no synclo found, assume none */
+    }
+    if (sexp_synclop(ls1))
+      return sexp_contains_syntax_p_bound(sexp_id_name(ls1), depth-1);
+  } else if (sexp_vectorp(x)) {
+    for (i = 0; i < sexp_vector_length(x); ++i)
+      if (sexp_contains_syntax_p_bound(sexp_vector_ref(x, sexp_make_fixnum(i)), depth-1))
+        return 1;
   }
   return 0;
 }
-#else
-#define sexp_cyclic_synclop(x) 0
-#endif
 
 sexp sexp_strip_synclos_bound (sexp ctx, sexp x, int depth) {
   int i;
@@ -624,7 +629,7 @@ sexp sexp_strip_synclos_bound (sexp ctx, sexp x, int depth) {
   if (depth <= 0) return x;
   sexp_gc_preserve3(ctx, res, kar, kdr);
   x = sexp_id_name(x);
-  if (sexp_pairp(x) && !sexp_cyclic_synclop(x)) {
+  if (sexp_pairp(x)) {
     kar = sexp_strip_synclos_bound(ctx, sexp_car(x), depth-1);
     kdr = sexp_strip_synclos_bound(ctx, sexp_cdr(x), depth-1);
     res = sexp_cons(ctx, kar, kdr);
@@ -641,6 +646,8 @@ sexp sexp_strip_synclos_bound (sexp ctx, sexp x, int depth) {
 }
 
 sexp sexp_strip_synclos (sexp ctx, sexp self, sexp_sint_t n, sexp x) {
+  if (!sexp_contains_syntax_p_bound(x, SEXP_STRIP_SYNCLOS_BOUND))
+    return x;
   return sexp_strip_synclos_bound(ctx, x, SEXP_STRIP_SYNCLOS_BOUND);
 }
 
@@ -794,18 +801,25 @@ static sexp analyze_set (sexp ctx, sexp x, int depth) {
 #define sexp_return(res, val) do {res=val; goto cleanup;} while (0)
 
 static sexp analyze_lambda (sexp ctx, sexp x, int depth) {
-  int trailing_non_procs;
+  int trailing_non_procs, verify_duplicates_p;
   sexp name, ls, ctx3;
   sexp_gc_var6(res, body, tmp, value, defs, ctx2);
   sexp_gc_preserve6(ctx, res, body, tmp, value, defs, ctx2);
   /* verify syntax */
   if (! (sexp_pairp(sexp_cdr(x)) && sexp_pairp(sexp_cddr(x))))
     sexp_return(res, sexp_compile_error(ctx, "bad lambda syntax", x));
+  verify_duplicates_p = sexp_length_unboxed(sexp_cadr(x)) < 100;
   for (ls=sexp_cadr(x); sexp_pairp(ls); ls=sexp_cdr(ls))
     if (! sexp_idp(sexp_car(ls)))
       sexp_return(res, sexp_compile_error(ctx, "non-symbol parameter", x));
-    else if (sexp_truep(sexp_memq(ctx, sexp_car(ls), sexp_cdr(ls))))
+    else if (verify_duplicates_p && sexp_truep(sexp_memq(ctx, sexp_car(ls), sexp_cdr(ls))))
       sexp_return(res, sexp_compile_error(ctx, "duplicate parameter", x));
+  if (! sexp_nullp(ls)) { /* verify rest param */
+    if (! sexp_idp(ls))
+      sexp_return(res, sexp_compile_error(ctx, "non-symbol parameter", x));
+    else if (sexp_truep(sexp_memq(ctx, ls, sexp_cadr(x))))
+      sexp_return(res, sexp_compile_error(ctx, "duplicate parameter", x));
+  }
   /* build lambda and analyze body */
   res = sexp_make_lambda(ctx, tmp=sexp_copy_list(ctx, sexp_cadr(x)));
   if (sexp_exceptionp(res)) sexp_return(res, res);
@@ -870,7 +884,9 @@ static sexp analyze_if (sexp ctx, sexp x, int depth) {
   sexp_gc_var3(test, pass, fail);
   sexp_gc_preserve3(ctx, test, pass, fail);
   if (! (sexp_pairp(sexp_cdr(x)) && sexp_pairp(sexp_cddr(x)))) {
-    res = sexp_compile_error(ctx, "bad if syntax", x);
+    res = sexp_compile_error(ctx, "not enough args to if", x);
+  } else if (sexp_pairp(sexp_cdddr(x)) && sexp_cdr(sexp_cdddr(x)) != SEXP_NULL) {
+    res = sexp_compile_error(ctx, "too many args to if", x);
   } else {
     test = analyze(ctx, sexp_cadr(x), depth, 0);
     pass = analyze(ctx, sexp_caddr(x), depth, 0);
@@ -1296,6 +1312,10 @@ sexp sexp_get_port_fileno (sexp ctx, sexp self, sexp_sint_t n, sexp port) {
     return sexp_make_fixnum(fd);
   return SEXP_FALSE;
 }
+sexp sexp_stream_portp_op (sexp ctx, sexp self, sexp_sint_t n, sexp port) {
+  sexp_assert_type(ctx, sexp_portp, SEXP_IPORT, port);
+  return sexp_make_boolean(sexp_stream_portp(port));
+}
 #endif
 
 #if SEXP_USE_STATIC_LIBS
@@ -1466,10 +1486,10 @@ sexp sexp_register_optimization (sexp ctx, sexp self, sexp_sint_t n, sexp f, sex
 #endif
 
 #if SEXP_USE_RATIOS
-#define maybe_convert_ratio(z)                          \
-  else if (sexp_ratiop(z)) d = sexp_ratio_to_double(z);
+#define maybe_convert_ratio(ctx, z)                             \
+  else if (sexp_ratiop(z)) d = sexp_ratio_to_double(ctx, z);
 #else
-#define maybe_convert_ratio(z)
+#define maybe_convert_ratio(ctx, z)
 #endif
 
 #if SEXP_USE_COMPLEX
@@ -1487,7 +1507,7 @@ sexp sexp_register_optimization (sexp ctx, sexp self, sexp_sint_t n, sexp f, sex
       d = sexp_flonum_value(z);                                         \
     else if (sexp_fixnump(z))                                           \
       d = (double)sexp_unbox_fixnum(z);                                 \
-    maybe_convert_ratio(z)                                              \
+    maybe_convert_ratio(ctx, z)                                         \
     maybe_convert_bignum(z)                                             \
     maybe_convert_complex(z, f)                                         \
     else                                                                \
@@ -1503,7 +1523,7 @@ sexp sexp_register_optimization (sexp ctx, sexp self, sexp_sint_t n, sexp f, sex
       d = sexp_flonum_value(z);                                         \
     else if (sexp_fixnump(z))                                           \
       d = (double)sexp_unbox_fixnum(z);                                 \
-    maybe_convert_ratio(z)                                              \
+    maybe_convert_ratio(ctx, z)                                         \
     maybe_convert_bignum(z)                                             \
     maybe_convert_complex(z, f)                                         \
     else                                                                \
@@ -1566,7 +1586,7 @@ sexp sexp_log (sexp ctx, sexp self, sexp_sint_t n, sexp z) {
     d = sexp_flonum_value(z);
   else if (sexp_fixnump(z))
     d = (double)sexp_unbox_fixnum(z);
-  maybe_convert_ratio(z)
+  maybe_convert_ratio(ctx, z)
   maybe_convert_bignum(z)
   else
     return sexp_type_exception(ctx, self, SEXP_NUMBER, z);
@@ -1593,7 +1613,7 @@ sexp sexp_inexact_sqrt (sexp ctx, sexp self, sexp_sint_t n, sexp z) {
     d = sexp_flonum_value(z);
   else if (sexp_fixnump(z))
     d = (double)sexp_unbox_fixnum(z);
-  maybe_convert_ratio(z)        /* XXXX add ratio sqrt */
+  maybe_convert_ratio(ctx, z)        /* XXXX add ratio sqrt */
   maybe_convert_complex(z, sexp_complex_sqrt)
   else
     return sexp_type_exception(ctx, self, SEXP_NUMBER, z);
@@ -1710,7 +1730,7 @@ sexp sexp_expt_op (sexp ctx, sexp self, sexp_sint_t n, sexp x, sexp e) {
     if (sexp_fixnump(e)) {
       return sexp_generic_expt(ctx, x, sexp_unbox_fixnum(e));
     } else {
-      x1 = sexp_ratio_to_double(x);
+      x1 = sexp_ratio_to_double(ctx, x);
     }
   }
 #endif
@@ -1722,7 +1742,7 @@ sexp sexp_expt_op (sexp ctx, sexp self, sexp_sint_t n, sexp x, sexp e) {
     e1 = sexp_flonum_value(e);
 #if SEXP_USE_RATIOS
   else if (sexp_ratiop(e))
-    e1 = sexp_ratio_to_double(e);
+    e1 = sexp_ratio_to_double(ctx, e);
 #endif
   else
     return sexp_type_exception(ctx, self, SEXP_FIXNUM, e);
@@ -1730,7 +1750,7 @@ sexp sexp_expt_op (sexp ctx, sexp self, sexp_sint_t n, sexp x, sexp e) {
   if ((f*1000.0 > SEXP_MAX_FIXNUM) || (f*1000.0 < SEXP_MIN_FIXNUM)
       || (! sexp_fixnump(x)) || (! sexp_fixnump(e)) || (e1 < 0.0)) {
 #if SEXP_USE_BIGNUMS
-    if (sexp_fixnump(x) && sexp_fixnump(e) && (e1 >= 0.0)) {
+    if (sexp_fixnump(x) && sexp_fixnump(e)) {
       sexp_gc_preserve1(ctx, tmp);
       tmp = sexp_fixnum_to_bignum(ctx, x);
       res = sexp_bignum_expt(ctx, tmp, e);
@@ -1784,7 +1804,7 @@ sexp sexp_exact_to_inexact (sexp ctx, sexp self, sexp_sint_t n, sexp i) {
 #endif
 #if SEXP_USE_RATIOS
   else if (sexp_ratiop(i))
-    res = sexp_make_flonum(ctx, sexp_ratio_to_double(i));
+    res = sexp_make_flonum(ctx, sexp_ratio_to_double(ctx, i));
 #endif
 #if SEXP_USE_COMPLEX
   else if (sexp_complexp(i)) {
@@ -1811,7 +1831,7 @@ sexp sexp_inexact_to_exact (sexp ctx, sexp self, sexp_sint_t n, sexp z) {
       res = sexp_xtype_exception(ctx, self, "exact: not a finite number", z);
     } else if (sexp_flonum_value(z) != trunc(sexp_flonum_value(z))) {
 #if SEXP_USE_RATIOS
-      res = sexp_double_to_ratio(ctx, sexp_flonum_value(z));
+      res = sexp_double_to_ratio_2(ctx, sexp_flonum_value(z));
 #else
       res = sexp_xtype_exception(ctx, self, "exact: not an integer", z);
 #endif
@@ -1929,6 +1949,8 @@ void sexp_string_utf8_set (sexp ctx, sexp str, sexp index, sexp ch) {
     sexp_string_size(str) += new_len - old_len;
   }
   sexp_utf8_encode_char(p, new_len, c);
+  if (old_len != new_len)
+    sexp_update_string_index_lookup(ctx, str);
 }
 
 sexp sexp_string_utf8_index_set (sexp ctx, sexp self, sexp_sint_t n, sexp str, sexp i, sexp ch) {
@@ -2150,9 +2172,9 @@ static struct sexp_core_form_struct core_forms[] = {
   {SEXP_CORE_BEGIN, (sexp)"begin"},
   {SEXP_CORE_QUOTE, (sexp)"quote"},
   {SEXP_CORE_SYNTAX_QUOTE, (sexp)"syntax-quote"},
-  {SEXP_CORE_DEFINE_SYNTAX, (sexp)"define-syntax"},
-  {SEXP_CORE_LET_SYNTAX, (sexp)"let-syntax"},
-  {SEXP_CORE_LETREC_SYNTAX, (sexp)"letrec-syntax"},
+  {SEXP_CORE_DEFINE_SYNTAX, (sexp)"%define-syntax"},
+  {SEXP_CORE_LET_SYNTAX, (sexp)"%let-syntax"},
+  {SEXP_CORE_LETREC_SYNTAX, (sexp)"%letrec-syntax"},
 };
 
 sexp sexp_make_env_op (sexp ctx, sexp self, sexp_sint_t n) {
@@ -2179,6 +2201,8 @@ sexp sexp_make_null_env_op (sexp ctx, sexp self, sexp_sint_t n, sexp version) {
   sexp_gc_release2(ctx);
   return e;
 }
+
+extern struct sexp_opcode_struct* sexp_primitive_opcodes;  /* from opcodes.c */
 
 sexp sexp_make_primitive_env_op (sexp ctx, sexp self, sexp_sint_t n, sexp version) {
   int i;
@@ -2263,6 +2287,10 @@ sexp sexp_load_module_file (sexp ctx, const char *file, sexp env) {
   return res;
 }
 
+sexp sexp_current_environment (sexp ctx, sexp self, sexp_sint_t n) {
+  return sexp_context_env(ctx);
+}
+
 #if SEXP_USE_MODULES
 sexp sexp_current_module_path_op (sexp ctx, sexp self, sexp_sint_t n, sexp x) {
   if (sexp_pairp(x) && sexp_stringp(sexp_car(x))) {
@@ -2279,9 +2307,6 @@ sexp sexp_load_module_file_op (sexp ctx, sexp self, sexp_sint_t n, sexp file, se
   sexp_assert_type(ctx, sexp_stringp, SEXP_STRING, file);
   sexp_assert_type(ctx, sexp_envp, SEXP_ENV, env);
   return sexp_load_module_file(ctx, sexp_string_data(file), env);
-}
-sexp sexp_current_environment (sexp ctx, sexp self, sexp_sint_t n) {
-  return sexp_context_env(ctx);
 }
 sexp sexp_set_current_environment (sexp ctx, sexp self, sexp_sint_t n, sexp env) {
   sexp oldenv;
@@ -2400,9 +2425,9 @@ sexp sexp_load_standard_env (sexp ctx, sexp e, sexp version) {
     = sexp_env_ref(ctx, e, sym=sexp_intern(ctx, "current-exception-handler", -1), SEXP_FALSE);
   /* load init-7.scm */
   len = strlen(sexp_init_file);
-  strncpy(init_file, sexp_init_file, len);
+  strncpy(init_file, sexp_init_file, len+1);
   init_file[len] = (char)sexp_unbox_fixnum(version) + '0';
-  strncpy(init_file + len + 1, sexp_init_file_suffix, strlen(sexp_init_file_suffix));
+  strncpy(init_file + len + 1, sexp_init_file_suffix, strlen(sexp_init_file_suffix)+1);
   init_file[len + 1 + strlen(sexp_init_file_suffix)] = 0;
   tmp = sexp_load_module_file(ctx, init_file, e);
   sexp_set_parameter(ctx, e, sexp_global(ctx, SEXP_G_INTERACTION_ENV_SYMBOL), e);

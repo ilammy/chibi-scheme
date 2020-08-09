@@ -325,6 +325,8 @@
     (let ((x (make-promise (+ 2 2))))
       (force x)
       (promise? x)))
+(test 4 (force (make-promise (+ 2 2))))
+(test 4 (force (make-promise (make-promise (+ 2 2)))))
 
 (define radix
   (make-parameter
@@ -446,6 +448,20 @@
           (begin expr dots)))))))
 (be-like-begin3 sequence3)
 (test 5 (sequence3 2 3 4 5))
+
+;; ellipsis escape
+(define-syntax elli-esc-1
+  (syntax-rules ()
+    ((_)
+     '(... ...))
+    ((_ x)
+     '(... (x ...)))
+    ((_ x y)
+     '(... (... x y)))))
+
+(test '... (elli-esc-1))
+(test '(100 ...) (elli-esc-1 100))
+(test '(... 100 200) (elli-esc-1 100 200))
 
 ;; Syntax pattern with ellipsis in middle of proper list.
 (define-syntax part-2
@@ -735,6 +751,10 @@
 (test #t (real? #e1e10))
 (test #t (real? +inf.0))
 (test #f (rational? -inf.0))
+(test #f (rational? +nan.0))
+(test #t (rational? 9007199254740991.0))
+(test #t (rational? 9007199254740992.0))
+(test #t (rational? 1.7976931348623157e308))
 (test #t (rational? 6/10))
 (test #t (rational? 6/3))
 (test #t (integer? 3+0i))
@@ -773,6 +793,10 @@
 (test #f (<= 1 2 1))
 (test #t (>= 2 1 1))
 (test #f (>= 1 2 1))
+(test #f (< +nan.0 0))
+(test #f (> +nan.0 0))
+(test #f (< +nan.0 0.0))
+(test #f (> +nan.0 0.0))
 (test '(#t #f) (list (<= 1 1 2) (<= 2 1 3)))
 
 ;; From R7RS 6.2.6 Numerical operations:
@@ -823,6 +847,7 @@
 (test #f (positive? -1.0))
 (test #t (positive? +inf.0))
 (test #f (positive? -inf.0))
+(test #f (positive? +nan.0))
 
 (test #f (negative? 0))
 (test #f (negative? 0.0))
@@ -832,6 +857,7 @@
 (test #t (negative? -1.0))
 (test #f (negative? +inf.0))
 (test #t (negative? -inf.0))
+(test #f (negative? +nan.0))
 
 (test #f (odd? 0))
 (test #t (odd? 1))
@@ -918,6 +944,10 @@
 
 (test 4 (round 7/2))
 (test 7 (round 7))
+(test 1 (round 7/10))
+(test -4 (round -7/2))
+(test -7 (round -7))
+(test -1 (round -7/10))
 
 (test 1/3 (rationalize (exact .3) 1/10))
 (test #i1/3 (rationalize .3 1/10))
@@ -1591,6 +1621,12 @@
 (test #t (call-with-current-continuation procedure?))
 
 (test 7 (apply + (list 3 4)))
+(test 7 (apply + 3 4 (list)))
+(test-error (apply +)) ;; not enough args
+(test-error (apply + 3)) ;; final arg not a list
+(test-error (apply + 3 4)) ;; final arg not a list
+(test-error (apply + '(2 3 . 4))) ;; final arg is improper
+
 
 (define compose
   (lambda (f g)
@@ -1754,6 +1790,8 @@
     (read-error? (guard (exn (else exn)) (error "BOOM!"))))
 (test #t
     (read-error? (guard (exn (else exn)) (read (open-input-string ")")))))
+(test #t
+    (read-error? (guard (exn (else exn)) (read (open-input-string "\"")))))
 
 (define something-went-wrong #f)
 (define (test-exception-handler-1 v)
@@ -2206,6 +2244,9 @@
 (test-write-syntax "|a b|" '|a b|)
 (test-write-syntax "|,a|" '|,a|)
 (test-write-syntax "|\"|" '|\"|)
+(test-write-syntax "|\\||" '|\||)
+(test-write-syntax "||" '||)
+(test-write-syntax "|\\\\123|" '|\\123|)
 (test-write-syntax "a" '|a|)
 ;; (test-write-syntax "a.b" '|a.b|)
 (test-write-syntax "|2|" '|2|)

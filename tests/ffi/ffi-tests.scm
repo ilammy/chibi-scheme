@@ -63,14 +63,49 @@ int cube(int x) {
 int sub(int x, int y) {
   return x - y;
 }
+int inc(int x, unsigned char y) {
+  return x + y;
+}
 ")
    (define-c int zero ())
    (define-c int cube (int))
-   (define-c int sub (int int)))
+   (define-c int sub (int int))
+   (define-c int inc (int unsigned-char)))
  (test 0 (zero))
  (test 4 (sub 7 3))
  (test -27 (cube -3))
- (test -3 (sub (zero) 3)))
+ (test -3 (sub (zero) 3))
+ (test 6 (inc 5 1)))
+
+(test-ffi
+ "params"
+ (begin
+   (c-declare "
+int add4(int a, int b, int c, int d) {
+  return a+b+c+d;
+}
+int add5(int a, int b, int c, int d, int e) {
+  return a+b+c+d+e;
+}
+int add6(int a, int b, int c, int d, int e, int f) {
+  return a+b+c+d+e+f;
+}
+")
+   (define-c int add4 (int int int int))
+   (define-c int add5 (int int int int int))
+   (define-c int add6 (int int int int int int))
+   (define-c int (add3or4 "add4") (int int int (default 0 int)))
+   (define-c int (add4or5 "add5") (int int int int (default 0 int)))
+   (define-c int (add5or6 "add6") (int int int int int (default 0 int))))
+ (test 4321 (add4 1 20 300 4000))
+ (test 54321 (add5 1 20 300 4000 50000))
+ (test 654321 (add6 1 20 300 4000 50000 600000))
+ (test 321 (add3or4 1 20 300))
+ (test 4321 (add3or4 1 20 300 4000))
+ (test 4321 (add4or5 1 20 300 4000))
+ (test 54321 (add4or5 1 20 300 4000 50000))
+ (test 54321 (add5or6 1 20 300 4000 50000))
+ (test 654321 (add5or6 1 20 300 4000 50000 600000)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; More detailed tests on integer conversions and overflow.
@@ -265,6 +300,34 @@ double circle_area1(struct Circle* circ) {
 double circle_area2(struct Circle circ) {
   return circle_area1(&circ);
 }
+
+struct Point* centroid(struct Point** points, int num_points) {
+  struct Point* res;
+  double xsum, ysum;
+  int i;
+  for (i=0; i<num_points; ++i) {
+    xsum += points[i]->x;
+    ysum += points[i]->y;
+  }
+  res = malloc(sizeof(struct Point));
+  res->x = xsum / num_points;
+  res->y = ysum / num_points;
+  return res;
+}
+
+struct Point* centroid_null(struct Point** points) {
+  struct Point* res;
+  double xsum, ysum;
+  int i;
+  for (i=0; points[i]; ++i) {
+    xsum += points[i]->x;
+    ysum += points[i]->y;
+  }
+  res = malloc(sizeof(struct Point));
+  res->x = xsum / i;
+  res->y = ysum / i;
+  return res;
+}
 ")
    (define-c-struct Point
      predicate: point?
@@ -290,6 +353,9 @@ double circle_area2(struct Circle circ) {
    (define-c Color make_color (short short short))
    (define-c short color_red ((pointer Color)))
    ;;(define-c errno draw_rect (Rectangle Color))
+   (define-c Point centroid ((array (pointer Point)) (value (length arg0) int)))
+   (define-c (maybe-null Point) centroid-null
+     ((array (pointer Point) null)))
    )
  (test-assert (point? (make-point 1. 2.)))
  (test 1. (point-x (make-point 1. 2.)))
@@ -326,6 +392,17 @@ double circle_area2(struct Circle circ) {
  (test 1 (color_red (set_color 1 2 3)))
  (test-assert (color? (make_color 1 2 3)))
  (test 1 (color_red (make_color 1 2 3)))
+ ;; array of pointers
+ (let ((c (centroid (list (make-point 1. 1.)
+                          (make-point 2. 2.)
+                          (make-point 3. 3.)))))
+   (test 2. (point-x c))
+   (test 2. (point-y c)))
+ (let ((c (centroid-null (list (make-point 1. 1.)
+                               (make-point 2. 2.)
+                               (make-point 3. 3.)))))
+   (test 2. (point-x c))
+   (test 2. (point-y c)))
  )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -397,6 +474,42 @@ int getpwnam_x(char* name, struct password* pwd, char* buf,
  (test "joe" (user-password (car (getpwnam_x "joe" (make-string 1024)))))
  (test-not (getpwnam_x "hacker" (make-string 1024)))
  )
+
+(test-ffi
+ "error-results"
+ (begin
+   (c-declare "
+char* err2str(int err) {
+  switch (err) {
+    case 0: return NULL;
+    case 1: return \"domain error\";
+    case 2: return \"bad things\";
+  }
+  return \"unknown error\";
+}
+
+int fib(int n, int* status) {
+  if (n < 0)
+    *status = 1;
+  if (n > 5)
+    *status = 2;
+  if (*status)
+    return 0;
+  if (n <= 1)
+    return 1;
+  return fib(n-1, status) + fib(n-2, status);
+}
+")
+   (define-c int fib
+     (int (error err2str int))))
+ (test 1 (fib 0))
+ (test 1 (fib 1))
+ (test 2 (fib 2))
+ (test 8 (fib 5))
+ (test "domain error"
+     (protect (exn (else (exception-message exn))) (fib -1)))
+ (test "bad things"
+     (protect (exn (else (exception-message exn))) (fib 10))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Field introspection and matching.
@@ -510,6 +623,24 @@ struct vec2box {
      (let ((v (make-vec2 17.0 23.0)))
        (list (vec2-x v) (vec2-y v))))
  (test-assert (vec2box? (make-vec2box (make-vec2 17.0 23.0)))))
+
+(test-ffi
+ "uniform vectors"
+ (begin
+   (c-declare "
+float f32vector_ref(float* uv, int i) {
+  return uv[i];
+}
+void f32vector_set(float* uv, int i, float v) {
+  uv[i] = v;
+}
+")
+   (define-c float f32vector-ref (f32vector int))
+   (define-c void f32vector-set (f32vector int float)))
+ (let ((uv #f32(0.0 0.1 0.2 0.3 0.4 0.5 0.6 0.7)))
+   (test 0.3 (f32vector-ref uv 3))
+   (f32vector-set uv 3 3.14)
+   (test 3.14 (f32vector-ref uv 3))))
 
 ;; TODO: virtual method accessors
 

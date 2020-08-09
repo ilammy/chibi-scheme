@@ -1,11 +1,23 @@
 
 (define-record-type Comparator
-  (make-comparator type-test equality ordering hash)
+  (%make-comparator% type-test equality ordering hash)
   comparator?
   (type-test comparator-type-test-predicate)
   (equality comparator-equality-predicate)
   (ordering comparator-ordering-predicate)
   (hash comparator-hash-function))
+
+(define (make-comparator type-test equality ordering hash)
+  (%make-comparator%
+    type-test
+    equality
+    ordering
+    (if (or (opcode? hash)
+            (not (procedure? hash))
+            (procedure-variadic? hash)
+            (> (procedure-arity hash) 1))
+        hash
+        (lambda (x . o) (hash x)))))
 
 (define-syntax hash-bound
   (er-macro-transformer
@@ -178,7 +190,9 @@
    (lambda (x y)
      (let lp ((ls (default-comparators)))
        (cond ((null? ls)
-              (equal? x y))
+              (if (number? x)
+                  (and (number? y) (= x y))
+                  (equal? x y)))
              ((and (comparator-test-type (car ls) x)
                    (comparator-test-type (car ls) y))
               ((comparator-equality-predicate (car ls)) x y))

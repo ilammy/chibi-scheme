@@ -35,37 +35,90 @@ sexp sexp_fixnum_to_bignum (sexp ctx, sexp a) {
   return res;
 }
 
-sexp sexp_make_integer (sexp ctx, sexp_lsint_t x) {
+sexp sexp_make_integer_from_lsint (sexp ctx, sexp_lsint_t x) {
   sexp res;
-  if ((SEXP_MIN_FIXNUM <= x) && (x <= SEXP_MAX_FIXNUM)) {
-    res = sexp_make_fixnum(x);
-  } else {
+  if (lsint_is_fixnum(x)) {
+    res = sexp_make_fixnum(lsint_to_sint(x));
+  } else if (sexp_lsint_fits_sint(x)) {
     res = sexp_make_bignum(ctx, 1);
-    if (x < 0) {
+    if (lsint_lt_0(x)) {
       sexp_bignum_sign(res) = -1;
-      sexp_bignum_data(res)[0] = (sexp_uint_t)-x;
+      sexp_bignum_data(res)[0] = (sexp_uint_t)-lsint_to_sint(x);
     } else {
       sexp_bignum_sign(res) = 1;
-      sexp_bignum_data(res)[0] = (sexp_uint_t)x;
+      sexp_bignum_data(res)[0] = (sexp_uint_t)lsint_to_sint(x);
+    }
+  } else {
+    res = sexp_make_bignum(ctx, 2);
+    if (lsint_lt_0(x)) {
+      sexp_bignum_sign(res) = -1;
+      sexp_bignum_data(res)[0] = (sexp_uint_t)-lsint_to_sint(x);
+      sexp_bignum_data(res)[1] = (sexp_uint_t)~lsint_to_sint_hi(x);
+    } else {
+      sexp_bignum_sign(res) = 1;
+      sexp_bignum_data(res)[0] = (sexp_uint_t)lsint_to_sint(x);
+      sexp_bignum_data(res)[1] = (sexp_uint_t)lsint_to_sint_hi(x);
     }
   }
   return res;
 }
 
-sexp sexp_make_unsigned_integer (sexp ctx, sexp_luint_t x) {
+sexp sexp_make_unsigned_integer_from_luint (sexp ctx, sexp_luint_t x) {
   sexp res;
-  if (x <= SEXP_MAX_FIXNUM) {
-    res = sexp_make_fixnum(x);
-  } else {
+  if (luint_is_fixnum(x)) {
+    res = sexp_make_fixnum(luint_to_uint(x));
+  } else if (sexp_luint_fits_uint(x)) {
     res = sexp_make_bignum(ctx, 1);
     sexp_bignum_sign(res) = 1;
-    sexp_bignum_data(res)[0] = (sexp_uint_t)x;
+    sexp_bignum_data(res)[0] = luint_to_uint(x);
+  } else {
+    res = sexp_make_bignum(ctx, 2);
+    sexp_bignum_sign(res) = 1;
+    sexp_bignum_data(res)[0] = luint_to_uint(x);
+    sexp_bignum_data(res)[1] = luint_to_uint_hi(x);
   }
   return res;
 }
 
+#if SEXP_USE_CUSTOM_LONG_LONGS
+sexp sexp_make_integer(sexp ctx, long long x) {
+  return sexp_make_integer_from_lsint(ctx, lsint_from_sint(x));
+}
+sexp sexp_make_unsigned_integer(sexp ctx, unsigned long long x) {
+  return sexp_make_unsigned_integer_from_luint(ctx, luint_from_uint(x));
+}
+#else
+sexp sexp_make_integer (sexp ctx, sexp_lsint_t x) {
+  return sexp_make_integer_from_lsint(ctx, x);
+}
+sexp sexp_make_unsigned_integer (sexp ctx, sexp_luint_t x) {
+  return sexp_make_unsigned_integer_from_luint(ctx, x);
+}
+#endif
+
+#if !SEXP_64_BIT
+long long sexp_bignum_to_sint(sexp x) {
+  if (!sexp_bignump(x))
+    return 0;
+  if (sexp_bignum_length(x) > 1)
+    return sexp_bignum_sign(x) * (
+      (((long long)(sexp_bignum_data(x)[1]))<<(8*sizeof(sexp_bignum_data(x)[0]))) + sexp_bignum_data(x)[0]);
+  return sexp_bignum_sign(x) * sexp_bignum_data(x)[0];
+}
+
+unsigned long long sexp_bignum_to_uint(sexp x) {
+  if (!sexp_bignump(x))
+    return 0;
+  if (sexp_bignum_length(x) > 1)
+    return (((unsigned long long)(sexp_bignum_data(x)[1]))<<(8*sizeof(sexp_bignum_data(x)[0]))) + sexp_bignum_data(x)[0];
+  return sexp_bignum_data(x)[0];
+}
+#endif
+
 #define double_trunc_10s_digit(f) (trunc((f)/10.0)*10.0)
 #define double_10s_digit(f) ((f)-double_trunc_10s_digit(f))
+
+#define double_16s_digit(f) fmod(f,16.0)
 
 sexp sexp_double_to_bignum (sexp ctx, double f) {
   int sign;
@@ -74,10 +127,10 @@ sexp sexp_double_to_bignum (sexp ctx, double f) {
   res = sexp_fixnum_to_bignum(ctx, SEXP_ZERO);
   scale = sexp_fixnum_to_bignum(ctx, SEXP_ONE);
   sign = (f < 0 ? -1 : 1);
-  for (f=fabs(f); f >= 1.0; f=trunc(f/10)) {
-    tmp = sexp_bignum_fxmul(ctx, NULL, scale, (sexp_uint_t)double_10s_digit(f), 0);
+  for (f=fabs(f); f >= 1.0; f=trunc(f/16)) {
+    tmp = sexp_bignum_fxmul(ctx, NULL, scale, (sexp_uint_t)double_16s_digit(f), 0);
     res = sexp_bignum_add(ctx, res, res, tmp);
-    scale = sexp_bignum_fxmul(ctx, NULL, scale, 10, 0);
+    scale = sexp_bignum_fxmul(ctx, NULL, scale, 16, 0);
   }
   sexp_bignum_sign(res) = sign;
   sexp_gc_release3(ctx);
@@ -135,7 +188,8 @@ sexp_sint_t sexp_bignum_compare_abs (sexp a, sexp b) {
 sexp_sint_t sexp_bignum_compare (sexp a, sexp b) {
   if (sexp_bignum_sign(a) != sexp_bignum_sign(b))
     return sexp_bignum_sign(a);
-  return sexp_bignum_compare_abs(a, b);
+  sexp_sint_t cmp = sexp_bignum_compare_abs(a, b);
+  return sexp_bignum_sign(a) < 0 ? -cmp : cmp;
 }
 
 sexp sexp_bignum_normalize (sexp a) {
@@ -198,9 +252,9 @@ sexp sexp_bignum_fxmul (sexp ctx, sexp d, sexp a, sexp_uint_t b, int offset) {
   tmp = d;
   data = sexp_bignum_data(d);
   for (i=0; i<len; i++) {
-    n = (sexp_luint_t)adata[i]*b + carry;
-    data[i+offset] = (sexp_uint_t)n;
-    carry = n >> (sizeof(sexp_uint_t)*8);
+    n = luint_add(luint_mul_uint(luint_from_uint(adata[i]), b), luint_from_uint(carry));
+    data[i+offset] = luint_to_uint(n);
+    carry = luint_to_uint(luint_shr(n, (sizeof(sexp_uint_t)*8)));
   }
   if (carry) {
     if (sexp_bignum_length(d) <= len+offset)
@@ -214,13 +268,13 @@ sexp sexp_bignum_fxmul (sexp ctx, sexp d, sexp a, sexp_uint_t b, int offset) {
 sexp_uint_t sexp_bignum_fxdiv (sexp ctx, sexp a, sexp_uint_t b, int offset) {
   sexp_uint_t len=sexp_bignum_hi(a), *data=sexp_bignum_data(a), q, r=0;
   int i;
-  sexp_luint_t n = 0;
+  sexp_luint_t n = luint_from_uint(0);
   for (i=len-1; i>=offset; i--) {
-    n = (n << sizeof(sexp_uint_t)*8) + data[i];
-    q = (sexp_uint_t)(n / b);
-    r = (sexp_uint_t)(n - (sexp_luint_t)q * b);
+    n = luint_add(luint_shl(n,  sizeof(sexp_uint_t)*8), luint_from_uint(data[i]));
+    q = luint_to_uint(luint_div_uint(n, b));
+    r = luint_to_uint(luint_sub(n, luint_mul_uint(luint_from_uint(q),  b)));
     data[i] = q;
-    n = r;
+    n = luint_from_uint(r);
   }
   return r;
 }
@@ -228,7 +282,7 @@ sexp_uint_t sexp_bignum_fxdiv (sexp ctx, sexp a, sexp_uint_t b, int offset) {
 sexp sexp_bignum_fxrem (sexp ctx, sexp a, sexp_sint_t b) {
   sexp_uint_t len=sexp_bignum_hi(a), *data=sexp_bignum_data(a), q, b0;
   int i;
-  sexp_luint_t n = 0;
+  sexp_luint_t n = luint_from_uint(0);
   if (b > 0) {
     q = b - 1;
     if ((b & q) == 0)
@@ -239,18 +293,18 @@ sexp sexp_bignum_fxrem (sexp ctx, sexp a, sexp_sint_t b) {
     return sexp_xtype_exception(ctx, NULL, "divide by zero", a);
   }
   for (i=len-1; i>=0; i--) {
-    n = (n << sizeof(sexp_uint_t)*8) + data[i];
-    q = (sexp_uint_t)(n / b0);
-    n -= (sexp_luint_t)q * b0;
+    n = luint_add(luint_shl(n, sizeof(sexp_uint_t)*8), luint_from_uint(data[i]));
+    q = luint_to_uint(luint_div_uint(n, b0));
+    n = luint_sub(n, luint_mul_uint(luint_from_uint(q), b0));
   }
-  return sexp_make_fixnum(sexp_bignum_sign(a) * (sexp_sint_t)n);
+  return sexp_make_fixnum(sexp_bignum_sign(a) * (sexp_sint_t)luint_to_uint(n));
 }
 
 sexp sexp_read_bignum (sexp ctx, sexp in, sexp_uint_t init,
                        signed char sign, sexp_uint_t base) {
   int c, digit;
-  sexp_gc_var1(res);
-  sexp_gc_preserve1(ctx, res);
+  sexp_gc_var3(res, tmp, imag);
+  sexp_gc_preserve3(ctx, res, tmp, imag);
   res = sexp_make_bignum(ctx, SEXP_INIT_BIGNUM_SIZE);
   sexp_bignum_sign(res) = sign;
   sexp_bignum_data(res)[0] = init;
@@ -264,9 +318,32 @@ sexp sexp_read_bignum (sexp ctx, sexp in, sexp_uint_t init,
   if (c=='.' || c=='e' || c=='E') {
     if (base != 10) {
       res = sexp_read_error(ctx, "found non-base 10 float", SEXP_NULL, in);
-    } else {
-      if (c!='.') sexp_push_char(ctx, c, in); /* push the e back */
+    } else if (c=='.') {
       res = sexp_read_float_tail(ctx, in, sexp_bignum_to_double(res), (sign==-1));
+    } else {
+      tmp = sexp_read_number(ctx, in, base, 0);
+#if SEXP_USE_COMPLEX
+      if (sexp_complexp(tmp)) {
+        imag = sexp_complex_imag(tmp);
+        tmp = sexp_complex_real(tmp);
+      } else {
+        imag = SEXP_ZERO;
+      }
+#endif
+      if (sexp_exceptionp(tmp)) {
+        res = tmp;
+      } else if (sexp_fixnump(tmp) && labs(sexp_unbox_fixnum(tmp)) < 100*1024*1024) {
+        tmp = sexp_expt(ctx, SEXP_TEN, tmp);
+        res = sexp_mul(ctx, res, tmp);
+      } else {
+        tmp = sexp_exact_to_inexact(ctx, NULL, 2, tmp);
+        tmp = sexp_expt(ctx, SEXP_TEN, tmp);
+        res = sexp_mul(ctx, res, tmp);
+      }
+#if SEXP_USE_COMPLEX
+      if (imag != SEXP_ZERO && !sexp_exceptionp(res))
+        res = sexp_make_complex(ctx, res, imag);
+#endif
     }
 #if SEXP_USE_RATIOS
   } else if (c=='/') {
@@ -287,7 +364,7 @@ sexp sexp_read_bignum (sexp ctx, sexp in, sexp_uint_t init,
   } else {
     sexp_push_char(ctx, c, in);
   }
-  sexp_gc_release1(ctx);
+  sexp_gc_release3(ctx);
   return sexp_bignum_normalize(res);
 }
 
@@ -524,38 +601,38 @@ sexp sexp_bignum_quot_rem (sexp ctx, sexp *rem, sexp a, sexp b) {
     sexp_bignum_data(x)[off] = 0;
     if (off > 0) sexp_bignum_data(x)[off-1] = 0;
     off = alen - blen + 1;
-    dn = (((sexp_luint_t)sexp_bignum_data(a1)[alen-1]
-           << (sizeof(sexp_uint_t)*8))
-          + sexp_bignum_data(a1)[alen-2]);
-    dd = (((sexp_luint_t)sexp_bignum_data(b1)[blen-1]
-           << (sizeof(sexp_uint_t)*8))
-          + sexp_bignum_data(b1)[blen-2]);
+    dn = luint_add_uint(luint_shl(luint_from_uint(sexp_bignum_data(a1)[alen-1])
+           , (sizeof(sexp_uint_t)*8))
+          , sexp_bignum_data(a1)[alen-2]);
+    dd = luint_add_uint(luint_shl(luint_from_uint(sexp_bignum_data(b1)[blen-1])
+           , (sizeof(sexp_uint_t)*8))
+          , sexp_bignum_data(b1)[blen-2]);
     if (alen > 2 && blen > 2 &&
-        sexp_bignum_data(a1)[alen-1] < ((sexp_luint_t)1<<(sizeof(sexp_uint_t)*4)) &&
-        sexp_bignum_data(b1)[blen-1] < ((sexp_luint_t)1<<(sizeof(sexp_uint_t)*4))) {
-      dn = (dn << (sizeof(sexp_uint_t)*4))
-        + (sexp_bignum_data(a1)[alen-3] >> (sizeof(sexp_uint_t)*4));
-      dd = (dd << (sizeof(sexp_uint_t)*4))
-        + (sexp_bignum_data(b1)[blen-3] >> (sizeof(sexp_uint_t)*4));
+        luint_lt(luint_from_uint(sexp_bignum_data(a1)[alen-1]), luint_shl(luint_from_uint(1), (sizeof(sexp_uint_t)*4))) &&
+        luint_lt(luint_from_uint(sexp_bignum_data(b1)[blen-1]), luint_shl(luint_from_uint(1), (sizeof(sexp_uint_t)*4)))) {
+      dn = luint_add_uint(luint_shl(dn, (sizeof(sexp_uint_t)*4))
+        , (sexp_bignum_data(a1)[alen-3] >> (sizeof(sexp_uint_t)*4)));
+      dd = luint_add_uint(luint_shl(dd, (sizeof(sexp_uint_t)*4))
+        , (sexp_bignum_data(b1)[blen-3] >> (sizeof(sexp_uint_t)*4)));
     }
-    d = dn / dd;
-    if (d == 0) {
-      dn = (((sexp_luint_t)sexp_bignum_data(a1)[alen-1]
-             << (sizeof(sexp_uint_t)*8))
-            + sexp_bignum_data(a1)[alen-2]);
-      dd = sexp_bignum_data(b1)[blen-1];
-      if (sexp_bignum_data(a1)[alen-1] < ((sexp_luint_t)1<<(sizeof(sexp_uint_t)*4)) &&
-          sexp_bignum_data(b1)[blen-1] < ((sexp_luint_t)1<<(sizeof(sexp_uint_t)*4))) {
-        dn = (dn << (sizeof(sexp_uint_t)*4))
-          + (sexp_bignum_data(a1)[alen-3] >> (sizeof(sexp_uint_t)*4));
-        dd = (dd << (sizeof(sexp_uint_t)*4))
-          + (sexp_bignum_data(b1)[blen-2] >> (sizeof(sexp_uint_t)*4));
+    d = luint_div(dn, dd);
+    if (luint_eq(d, luint_from_uint(0))) {
+      dn = luint_add_uint(luint_shl(luint_from_uint(sexp_bignum_data(a1)[alen-1])
+             , (sizeof(sexp_uint_t)*8))
+            , sexp_bignum_data(a1)[alen-2]);
+      dd = luint_from_uint(sexp_bignum_data(b1)[blen-1]);
+      if (luint_lt(luint_from_uint(sexp_bignum_data(a1)[alen-1]), (luint_shl(luint_from_uint(1), (sizeof(sexp_uint_t)*4)))) &&
+          luint_lt(luint_from_uint(sexp_bignum_data(b1)[blen-1]), (luint_shl(luint_from_uint(1), (sizeof(sexp_uint_t)*4))))) {
+        dn = luint_add_uint(luint_shl(dn, (sizeof(sexp_uint_t)*4))
+          , (sexp_bignum_data(a1)[alen-3] >> (sizeof(sexp_uint_t)*4)));
+        dd = luint_add_uint(luint_shl(dd, (sizeof(sexp_uint_t)*4))
+          , (sexp_bignum_data(b1)[blen-2] >> (sizeof(sexp_uint_t)*4)));
       }
-      d = dn / dd;
+      d = luint_div(dn, dd);
       off--;
     }
-    dhi = d >> (sizeof(sexp_uint_t)*8);
-    dlo = d & (((sexp_luint_t)1<<(sizeof(sexp_uint_t)*8))-1);
+    dhi = luint_to_uint(luint_shr(d, (sizeof(sexp_uint_t)*8)));
+    dlo = luint_to_uint(luint_and(d, luint_sub(luint_shl(luint_from_uint(1), (sizeof(sexp_uint_t)*8)), luint_from_uint(1))));
     sexp_bignum_data(x)[off] = dhi;
     if (off > 0) sexp_bignum_data(x)[off-1] = dlo;
     /* update quotient q and remainder a1 estimates */
@@ -608,14 +685,21 @@ sexp sexp_bignum_remainder (sexp ctx, sexp a, sexp b) {
 }
 
 sexp sexp_bignum_expt (sexp ctx, sexp a, sexp b) {
-  sexp_sint_t e = sexp_unbox_fx_abs(b);
+  sexp_sint_t e = sexp_unbox_fixnum(b);
+  sexp_sint_t abs_e;
+  if (e < 0)
+    abs_e = -e;
+  else
+    abs_e = e;
   sexp_gc_var2(res, acc);
   sexp_gc_preserve2(ctx, res, acc);
   res = sexp_fixnum_to_bignum(ctx, SEXP_ONE);
   acc = sexp_copy_bignum(ctx, NULL, a, 0);
-  for (; e; e>>=1, acc=sexp_bignum_mul(ctx, NULL, acc, acc))
-    if (e & 1)
+  for (; abs_e; abs_e>>=1, acc=sexp_bignum_mul(ctx, NULL, acc, acc))
+    if (abs_e & 1)
       res = sexp_bignum_mul(ctx, NULL, res, acc);
+  if (e < 0)
+    res = sexp_div(ctx, sexp_fixnum_to_bignum(ctx, SEXP_ONE), res);
   sexp_gc_release2(ctx);
   return sexp_bignum_normalize(res);
 }
@@ -695,12 +779,25 @@ sexp sexp_bignum_sqrt (sexp ctx, sexp a, sexp* rem_out) {
 
 #if SEXP_USE_RATIOS
 
-double sexp_ratio_to_double (sexp rat) {
+double sexp_ratio_to_double (sexp ctx, sexp rat) {
+  sexp_gc_var1(quot);
   sexp num = sexp_ratio_numerator(rat), den = sexp_ratio_denominator(rat);
-  return (sexp_bignump(num) ? sexp_bignum_to_double(num)
+  double res = (sexp_bignump(num) ? sexp_bignum_to_double(num)
           : sexp_fixnum_to_double(num))
     / (sexp_bignump(den) ? sexp_bignum_to_double(den)
        : sexp_fixnum_to_double(den));
+  if (!isfinite(res)) {
+    sexp_gc_preserve1(ctx, quot);
+    if (sexp_unbox_fixnum(sexp_compare(ctx, sexp_ratio_numerator(rat),  sexp_ratio_denominator(rat))) < 0) {
+      quot = sexp_quotient(ctx, sexp_ratio_denominator(rat),  sexp_ratio_numerator(rat));
+      res = 1 / sexp_to_double(ctx, quot);
+    } else {
+      quot = sexp_quotient(ctx, sexp_ratio_numerator(rat),  sexp_ratio_denominator(rat));
+      res = sexp_to_double(ctx, quot);
+    }
+    sexp_gc_release1(ctx);
+  }
+  return res;
 }
 
 sexp sexp_double_to_ratio (sexp ctx, double f) {
@@ -719,6 +816,41 @@ sexp sexp_double_to_ratio (sexp ctx, double f) {
     res = sexp_bignum_fxadd(ctx, res, (sexp_uint_t)double_10s_digit(f));
     f = f - trunc(f);
     scale = sexp_mul(ctx, scale, SEXP_TEN);
+  }
+  sexp_bignum_sign(res) = sign;
+  res = sexp_bignum_normalize(res);
+  scale = sexp_bignum_normalize(scale);
+  res = sexp_make_ratio(ctx, res, scale);
+  res = sexp_ratio_normalize(ctx, res, SEXP_FALSE);
+  res = sexp_add(ctx, res, whole);
+  sexp_gc_release3(ctx);
+  return res;
+}
+
+/*
+ * For conversion that does not introduce round-off error,
+ * no matter what FLT_RADIX is.
+ */
+sexp sexp_double_to_ratio_2 (sexp ctx, double f) {
+  int sign,i;
+  sexp_gc_var3(res, whole, scale);
+  if (f == trunc(f))
+    return sexp_bignum_normalize(sexp_double_to_bignum(ctx, f));
+  sexp_gc_preserve3(ctx, res, whole, scale);
+  whole = sexp_double_to_bignum(ctx, trunc(f));
+  res = sexp_fixnum_to_bignum(ctx, SEXP_ZERO);
+  scale = SEXP_ONE;
+  sign = (f < 0 ? -1 : 1);
+  f = fabs(f-trunc(f));
+  while(f) {
+    res = sexp_bignum_fxmul(ctx, NULL, res, FLT_RADIX, 0);
+    scale = sexp_mul(ctx, scale, sexp_make_fixnum(FLT_RADIX));
+    f *= FLT_RADIX;
+    i = trunc(f);
+    if (i) {
+      f -= i;
+      res = sexp_bignum_fxadd(ctx, res, i);
+    }
   }
   sexp_bignum_sign(res) = sign;
   res = sexp_bignum_normalize(res);
@@ -786,7 +918,7 @@ sexp sexp_ratio_round (sexp ctx, sexp a) {
     r = sexp_mul(ctx, r, SEXP_TWO);
     if (sexp_exact_negativep(r)) {sexp_negate(r);}
     if (sexp_unbox_fixnum(sexp_compare(ctx, r, sexp_ratio_denominator(a))) > 0)
-      q = sexp_add(ctx, q, (sexp_exact_positivep(q) ? SEXP_ONE : SEXP_NEG_ONE));
+      q = sexp_add(ctx, q, (sexp_exact_negativep(sexp_ratio_numerator(a)) ? SEXP_NEG_ONE : SEXP_ONE));
   }
   sexp_gc_release2(ctx);
   return q;
@@ -817,6 +949,21 @@ sexp sexp_ratio_ceiling (sexp ctx, sexp a) {
 }
 
 #endif
+
+double sexp_to_double (sexp ctx, sexp x) {
+  if (sexp_flonump(x))
+    return sexp_flonum_value(x);
+  else if (sexp_fixnump(x))
+    return sexp_fixnum_to_double(x);
+  else if (sexp_bignump(x))
+    return sexp_bignum_to_double(x);
+#if SEXP_USE_RATIOS
+  else if (sexp_ratiop(x))
+    return sexp_ratio_to_double(ctx, x);
+#endif
+  else
+    return 0.0;
+}
 
 /************************ complex numbers ****************************/
 
@@ -899,21 +1046,6 @@ sexp sexp_complex_div (sexp ctx, sexp a, sexp b) {
   return sexp_complex_normalize(res);
 }
 
-static double sexp_to_double (sexp x) {
-  if (sexp_flonump(x))
-    return sexp_flonum_value(x);
-  else if (sexp_fixnump(x))
-    return sexp_fixnum_to_double(x);
-  else if (sexp_bignump(x))
-    return sexp_bignum_to_double(x);
-#if SEXP_USE_RATIOS
-  else if (sexp_ratiop(x))
-    return sexp_ratio_to_double(x);
-#endif
-  else
-    return 0.0;
-}
-
 static sexp sexp_to_complex (sexp ctx, sexp x) {
 #if SEXP_USE_RATIOS
   sexp_gc_var1(tmp);
@@ -924,7 +1056,7 @@ static sexp sexp_to_complex (sexp ctx, sexp x) {
   } else if (sexp_ratiop(x)) {
     sexp_gc_preserve1(ctx, tmp);
     tmp = sexp_make_complex(ctx, SEXP_ZERO, SEXP_ZERO);
-    sexp_complex_real(tmp) = sexp_make_flonum(ctx, sexp_to_double(x));
+    sexp_complex_real(tmp) = sexp_make_flonum(ctx, sexp_to_double(ctx, x));
     sexp_gc_release1(ctx);
     return tmp;
 #endif
@@ -934,8 +1066,8 @@ static sexp sexp_to_complex (sexp ctx, sexp x) {
 }
 
 sexp sexp_complex_exp (sexp ctx, sexp z) {
-  double e2x = exp(sexp_to_double(sexp_complex_real(z))),
-    y = sexp_to_double(sexp_complex_imag(z));
+  double e2x = exp(sexp_to_double(ctx, sexp_complex_real(z))),
+    y = sexp_to_double(ctx, sexp_complex_imag(z));
   sexp_gc_var1(res);
   sexp_gc_preserve1(ctx, res);
   res = sexp_make_complex(ctx, SEXP_ZERO, SEXP_ZERO);
@@ -946,8 +1078,8 @@ sexp sexp_complex_exp (sexp ctx, sexp z) {
 }
 
 sexp sexp_complex_log (sexp ctx, sexp z) {
-  double x = sexp_to_double(sexp_complex_real(z)),
-    y = sexp_to_double(sexp_complex_imag(z));
+  double x = sexp_to_double(ctx, sexp_complex_real(z)),
+    y = sexp_to_double(ctx, sexp_complex_imag(z));
   sexp_gc_var1(res);
   sexp_gc_preserve1(ctx, res);
   res = sexp_make_complex(ctx, SEXP_ZERO, SEXP_ZERO);
@@ -971,8 +1103,8 @@ sexp sexp_complex_expt (sexp ctx, sexp a, sexp b) {
 #if SEXP_USE_MATH
 
 sexp sexp_complex_sqrt (sexp ctx, sexp z) {
-  double x = sexp_to_double(sexp_complex_real(z)),
-    y = sexp_to_double(sexp_complex_imag(z)), r;
+  double x = sexp_to_double(ctx, sexp_complex_real(z)),
+    y = sexp_to_double(ctx, sexp_complex_imag(z)), r;
   sexp_gc_var1(res);
   sexp_gc_preserve1(ctx, res);
   r = sqrt(x*x + y*y);
@@ -984,8 +1116,8 @@ sexp sexp_complex_sqrt (sexp ctx, sexp z) {
 }
 
 sexp sexp_complex_sin (sexp ctx, sexp z) {
-  double x = sexp_to_double(sexp_complex_real(z)),
-    y = sexp_to_double(sexp_complex_imag(z));
+  double x = sexp_to_double(ctx, sexp_complex_real(z)),
+    y = sexp_to_double(ctx, sexp_complex_imag(z));
   sexp_gc_var1(res);
   sexp_gc_preserve1(ctx, res);
   res = sexp_make_complex(ctx, SEXP_ZERO, SEXP_ZERO);
@@ -996,8 +1128,8 @@ sexp sexp_complex_sin (sexp ctx, sexp z) {
 }
 
 sexp sexp_complex_cos (sexp ctx, sexp z) {
-  double x = sexp_to_double(sexp_complex_real(z)),
-    y = sexp_to_double(sexp_complex_imag(z));
+  double x = sexp_to_double(ctx, sexp_complex_real(z)),
+    y = sexp_to_double(ctx, sexp_complex_imag(z));
   sexp_gc_var1(res);
   sexp_gc_preserve1(ctx, res);
   res = sexp_make_complex(ctx, SEXP_ZERO, SEXP_ZERO);
@@ -1211,7 +1343,7 @@ sexp sexp_add (sexp ctx, sexp a, sexp b) {
     break;
 #if SEXP_USE_RATIOS
   case SEXP_NUM_FLO_RAT:
-    r = sexp_make_flonum(ctx, sexp_flonum_value(a) + sexp_ratio_to_double(b));
+    r = sexp_make_flonum(ctx, sexp_flonum_value(a) + sexp_ratio_to_double(ctx, b));
     break;
   case SEXP_NUM_FIX_RAT:
   case SEXP_NUM_BIG_RAT:
@@ -1271,7 +1403,7 @@ sexp sexp_sub (sexp ctx, sexp a, sexp b) {
     r = sexp_fx_sub(a, b);      /* VM catches this case */
     break;
   case SEXP_NUM_FIX_FLO:
-    r = sexp_make_flonum(ctx, sexp_fixnum_to_double(a)-sexp_flonum_value(b));
+    r = sexp_make_flonum(ctx, a==SEXP_ZERO ? -sexp_flonum_value(b) : sexp_fixnum_to_double(a)-sexp_flonum_value(b));
     break;
   case SEXP_NUM_FIX_BIG:
     tmp1 = sexp_fixnum_to_bignum(ctx, a);
@@ -1300,10 +1432,10 @@ sexp sexp_sub (sexp ctx, sexp a, sexp b) {
     break;
 #if SEXP_USE_RATIOS
   case SEXP_NUM_FLO_RAT:
-    r = sexp_make_flonum(ctx, sexp_flonum_value(a) - sexp_ratio_to_double(b));
+    r = sexp_make_flonum(ctx, sexp_flonum_value(a) - sexp_ratio_to_double(ctx, b));
     break;
   case SEXP_NUM_RAT_FLO:
-    r = sexp_make_flonum(ctx, sexp_ratio_to_double(a) - sexp_flonum_value(b));
+    r = sexp_make_flonum(ctx, sexp_ratio_to_double(ctx, a) - sexp_flonum_value(b));
     break;
   case SEXP_NUM_RAT_FIX:
   case SEXP_NUM_RAT_BIG:
@@ -1332,10 +1464,10 @@ sexp sexp_sub (sexp ctx, sexp a, sexp b) {
 #if SEXP_USE_COMPLEX
 #if SEXP_USE_RATIOS
   case SEXP_NUM_RAT_CPX:
-    a = tmp1 = sexp_make_flonum(ctx, sexp_ratio_to_double(a));
+    a = tmp1 = sexp_make_flonum(ctx, sexp_ratio_to_double(ctx, a));
     goto complex_sub;
   case SEXP_NUM_CPX_RAT:
-    b = tmp1 = sexp_make_flonum(ctx, sexp_ratio_to_double(b));
+    b = tmp1 = sexp_make_flonum(ctx, sexp_ratio_to_double(ctx, b));
     /* ... FALLTHROUGH ... */
 #endif
   case SEXP_NUM_CPX_FLO:
@@ -1386,11 +1518,11 @@ sexp sexp_mul (sexp ctx, sexp a, sexp b) {
     r = sexp_type_exception(ctx, NULL, SEXP_NUMBER, a);
     break;
   case SEXP_NUM_FIX_FIX:
-    prod = (sexp_lsint_t)sexp_unbox_fixnum(a) * sexp_unbox_fixnum(b);
-    if ((prod < SEXP_MIN_FIXNUM) || (prod > SEXP_MAX_FIXNUM))
+    prod = lsint_mul_sint(lsint_from_sint(sexp_unbox_fixnum(a)), sexp_unbox_fixnum(b));
+    if (!lsint_is_fixnum(prod))
       r = sexp_mul(ctx, tmp=sexp_fixnum_to_bignum(ctx, a), b);
     else
-      r = sexp_make_fixnum(prod);
+      r = sexp_make_fixnum(lsint_to_sint(prod));
     break;
   case SEXP_NUM_FIX_FLO:
     r = (a==SEXP_ZERO ? a : sexp_make_flonum(ctx, sexp_fixnum_to_double(a)*sexp_flonum_value(b)));
@@ -1411,7 +1543,7 @@ sexp sexp_mul (sexp ctx, sexp a, sexp b) {
     break;
 #if SEXP_USE_RATIOS
   case SEXP_NUM_FLO_RAT:
-    r = sexp_make_flonum(ctx, sexp_flonum_value(a) * sexp_ratio_to_double(b));
+    r = sexp_make_flonum(ctx, sexp_flonum_value(a) * sexp_ratio_to_double(ctx, b));
     break;
   case SEXP_NUM_FIX_RAT:
   case SEXP_NUM_BIG_RAT:
@@ -1518,10 +1650,10 @@ sexp sexp_div (sexp ctx, sexp a, sexp b) {
     break;
 #if SEXP_USE_RATIOS
   case SEXP_NUM_FLO_RAT:
-    r = sexp_make_flonum(ctx, sexp_flonum_value(a) / sexp_ratio_to_double(b));
+    r = sexp_make_flonum(ctx, sexp_flonum_value(a) / sexp_ratio_to_double(ctx, b));
     break;
   case SEXP_NUM_RAT_FLO:
-    r = sexp_make_flonum(ctx, sexp_ratio_to_double(a) / sexp_flonum_value(b));
+    r = sexp_make_flonum(ctx, sexp_ratio_to_double(ctx, a) / sexp_flonum_value(b));
     break;
   case SEXP_NUM_RAT_FIX:
   case SEXP_NUM_RAT_BIG:
@@ -1539,7 +1671,7 @@ sexp sexp_div (sexp ctx, sexp a, sexp b) {
 #if SEXP_USE_COMPLEX
 #if SEXP_USE_RATIOS
   case SEXP_NUM_CPX_RAT:
-    b = tmp = sexp_make_flonum(ctx, sexp_ratio_to_double(b));
+    b = tmp = sexp_make_flonum(ctx, sexp_ratio_to_double(ctx, b));
     /* ... FALLTHROUGH ... */
 #endif
   case SEXP_NUM_CPX_FLO:
@@ -1550,7 +1682,7 @@ sexp sexp_div (sexp ctx, sexp a, sexp b) {
 #if SEXP_USE_RATIOS
   case SEXP_NUM_RAT_CPX:
     if (sexp_ratiop(a))
-      a = tmp = sexp_make_flonum(ctx, sexp_ratio_to_double(a));
+      a = tmp = sexp_make_flonum(ctx, sexp_ratio_to_double(ctx, a));
     /* ... FALLTHROUGH ... */
 #endif
   case SEXP_NUM_FLO_CPX:
@@ -1667,8 +1799,11 @@ sexp sexp_remainder (sexp ctx, sexp a, sexp b) {
 #if SEXP_USE_RATIOS
   case SEXP_NUM_FLO_RAT:
 #endif
-    if (sexp_flonum_value(a) != trunc(sexp_flonum_value(a))) {
+    if (isinf(sexp_flonum_value(a)) ||
+        sexp_flonum_value(a) != trunc(sexp_flonum_value(a))) {
       r = sexp_type_exception(ctx, NULL, SEXP_FIXNUM, a);
+    } else if (bt == SEXP_NUM_FLO && isinf(sexp_flonum_value(b))) {
+      r = sexp_type_exception(ctx, NULL, SEXP_FIXNUM, b);
     } else {
       tmp = sexp_bignum_normalize(sexp_double_to_bignum(ctx, sexp_flonum_value(a)));
       tmp = sexp_remainder(ctx, tmp, b);
@@ -1691,7 +1826,8 @@ sexp sexp_remainder (sexp ctx, sexp a, sexp b) {
 #if SEXP_USE_RATIOS
   case SEXP_NUM_RAT_FLO:
 #endif
-    if (sexp_flonum_value(b) != trunc(sexp_flonum_value(b))) {
+    if (isinf(sexp_flonum_value(b)) ||
+        sexp_flonum_value(b) != trunc(sexp_flonum_value(b))) {
       r = sexp_type_exception(ctx, NULL, SEXP_FIXNUM, b);
     } else {
       tmp = sexp_bignum_normalize(sexp_double_to_bignum(ctx, sexp_flonum_value(b)));
@@ -1752,7 +1888,10 @@ sexp sexp_compare (sexp ctx, sexp a, sexp b) {
     case SEXP_NUM_FIX_FLO:
       f = sexp_fixnum_to_double(a);
       g = sexp_flonum_value(b);
-      r = sexp_make_fixnum(f < g ? -1 : f == g ? 0 : 1);
+      if (isnan(g))
+        r = sexp_xtype_exception(ctx, NULL, "can't compare NaN", b);
+      else
+        r = sexp_make_fixnum(f < g ? -1 : f == g ? 0 : 1);
       break;
     case SEXP_NUM_FIX_BIG:
       if ((sexp_bignum_hi(b) > 1) ||
@@ -1764,7 +1903,12 @@ sexp sexp_compare (sexp ctx, sexp a, sexp b) {
     case SEXP_NUM_FLO_FLO:
       f = sexp_flonum_value(a);
       g = sexp_flonum_value(b);
-      r = sexp_make_fixnum(f < g ? -1 : f == g ? 0 : 1);
+      if (isnan(f))
+        r = sexp_xtype_exception(ctx, NULL, "can't compare NaN", a);
+      else if (isnan(g))
+        r = sexp_xtype_exception(ctx, NULL, "can't compare NaN", b);
+      else
+        r = sexp_make_fixnum(f < g ? -1 : f == g ? 0 : 1);
       break;
     case SEXP_NUM_FLO_BIG:
       f = sexp_flonum_value(a);
@@ -1789,7 +1933,7 @@ sexp sexp_compare (sexp ctx, sexp a, sexp b) {
       } else if (isnan(f)) {
         r = sexp_xtype_exception(ctx, NULL, "can't compare NaN", a);
       } else {
-        g = sexp_ratio_to_double(b);
+        g = sexp_ratio_to_double(ctx, b);
         r = sexp_make_fixnum(f < g ? -1 : f == g ? 0 : 1);
       }
       break;

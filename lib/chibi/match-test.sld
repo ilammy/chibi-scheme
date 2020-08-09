@@ -117,6 +117,15 @@
       (test "Riastradh quasiquote" '(2 3)
         (match '(1 2 3) (`(1 ,b ,c) (list b c))))
 
+      (test "unquote-splicing" '(2 3)
+        (match '(1 2 3) (`(1 ,@ls) ls)))
+
+      (test "unquote-splicing tail" '(b c)
+        (match '(a b c d) (`(a ,@ls d) ls)))
+
+      (test "unquote-splicing tail fail" #f
+        (match '(a b c e) (`(a ,@ls d) ls) (else #f)))
+
       (test "trivial tree search" '(1 2 3)
         (match '(1 2 3) ((_ *** (a b c)) (list a b c))))
 
@@ -186,6 +195,34 @@
           (((and x (? symbol?)) ..1) x)
           (else #f)))
 
+      (test "list ..= too few" #f
+        (match (list 1 2) ((a b ..= 2) b) (else #f)))
+      (test "list ..=" '(2 3)
+        (match (list 1 2 3) ((a b ..= 2) b) (else #f)))
+      (test "list ..= too many" #f
+        (match (list 1 2 3 4) ((a b ..= 2) b) (else #f)))
+      (test "list ..= tail" 4
+        (match (list 1 2 3 4) ((a b ..= 2 c) c) (else #f)))
+      (test "list ..= tail fail" #f
+        (match (list 1 2 3 4 5 6) ((a b ..= 2 c) c) (else #f)))
+
+      (test "list ..* too few" #f
+        (match (list 1 2) ((a b ..* 2 4) b) (else #f)))
+      (test "list ..* lo" '(2 3)
+        (match (list 1 2 3) ((a b ..* 2 4) b) (else #f)))
+      (test "list ..* hi" '(2 3 4 5)
+        (match (list 1 2 3 4 5) ((a b ..* 2 4) b) (else #f)))
+      (test "list ..* too many" #f
+        (match (list 1 2 3 4 5 6) ((a b ..* 2 4) b) (else #f)))
+      (test "list ..* tail" 4
+        (match (list 1 2 3 4) ((a b ..* 2 4 c) c) (else #f)))
+      (test "list ..* tail 2" 5
+        (match (list 1 2 3 4 5) ((a b ..* 2 4 c d) d) (else #f)))
+      (test "list ..* tail" 6
+        (match (list 1 2 3 4 5 6) ((a b ..* 2 4 c) c) (else #f)))
+      (test "list ..* tail fail" #f
+        (match (list 1 2 3 4 5 6 7) ((a b ..* 2 4 c) c) (else #f)))
+
       (test "match-named-let" 6
         (match-let loop (((x . rest) '(1 2 3))
                          (sum 0))
@@ -193,6 +230,11 @@
             (if (null? rest)
                 sum
                 (loop rest sum)))))
+
+      '(test "match-letrec" '(2 1 1 2)
+          (match-letrec (((x y) (list 1 (lambda () (list a x))))
+                         ((a b) (list 2 (lambda () (list x a)))))
+                        (append (y) (b))))
 
       (cond-expand
        (chibi

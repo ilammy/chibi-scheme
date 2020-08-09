@@ -3,7 +3,7 @@
   (export get-host-name
           user? user-name user-password
           user-id user-group-id user-gecos user-home user-shell
-          group-name group-password group-id
+          group? group-name group-password group-id
           current-user-id current-group-id
           current-effective-user-id current-effective-group-id
           set-current-user-id! set-current-effective-user-id!
@@ -19,9 +19,9 @@
     (body
      (define (user-information user)
        (car (if (string? user)
-		(getpwnam_r user (make-string 1024))
-		(getpwuid_r user (make-string 1024)))))
+                (getpwnam_r user (make-string 1024))
+                (getpwuid_r user (make-string 1024)))))
      (define (group-information group)
        (car (if (string? group)
-		(getgrnam_r group (make-string 1024))
-		(getgrgid_r group (make-string 1024)))))))))
+                (getgrnam_r group (make-string 1024))
+                (getgrgid_r group (make-string 1024)))))))))

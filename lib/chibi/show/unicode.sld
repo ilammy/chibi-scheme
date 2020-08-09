@@ -1,5 +1,2 @@
 
-(define-library (chibi show unicode)
-  (import (scheme base) (chibi show base) (srfi 151))
-  (export as-unicode unicode-terminal-width)
-  (include "unicode.scm"))
+(define-library (chibi show unicode) (alias-for (srfi 166 unicode)))

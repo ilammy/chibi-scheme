@@ -106,7 +106,8 @@
 
 (define (history-commit! h x)
   (history-reset! h)
-  (history-insert! h x))
+  (if (not (and (pair? (history-past h)) (equal? x (car (history-past h)))))
+      (history-insert! h x)))
 
 (define (history-prev! h)
   (let ((past (history-past h)))
@@ -284,7 +285,7 @@
       ((<= #xFFE0 ci #xFFE6) 2)
       ((<= #x20000 ci #x30000) 2)
       ;; non-spacing mark (Mn) ranges from UnicodeData.txt
-      ((<= #x0300 ci #x3029)
+      ((<= #x0300 ci #x20fd)  ; #x3029
        ;; inlined bit-vector-ref for portability
        (let* ((i (- ci #x0300))
               (byte (quotient i 8))

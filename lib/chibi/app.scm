@@ -15,12 +15,12 @@
 ;;> where clauses can be any of:
 ;;>
 ;;> \itemlist[
-;;> \item[\scheme{(@ <opt-spec>)} - option spec, described below]
-;;> \item[\scheme{(begin: <begin-proc>)} - procedure to run before main]
-;;> \item[\scheme{(end: <end-proc>)} - procedure to run after main]
-;;> \item[\scheme{(<proc> args ...)} - main procedure (args only for documentation)]
-;;> \item[\scheme{<app-spec>} - a subcommand described by the nested spec]
-;;> \item[\scheme{(or <app-spec> ...)} - an alternate list of subcommands]
+;;> \item{\scheme{(@ <opt-spec>)} - option spec, described below}
+;;> \item{\scheme{(begin: <begin-proc>)} - procedure to run before main}
+;;> \item{\scheme{(end: <end-proc>)} - procedure to run after main}
+;;> \item{\scheme{(<proc> args ...)} - main procedure (args only for documentation)}
+;;> \item{\scheme{<app-spec>} - a subcommand described by the nested spec}
+;;> \item{\scheme{(or <app-spec> ...)} - an alternate list of subcommands}
 ;;> ]
 ;;>
 ;;> For subcommands the symbolic command name must match, though it is
@@ -40,7 +40,7 @@
 ;;>
 ;;> \itemlist[
 ;;> \item{\scheme{boolean} - boolean, associated value optional, allowing \scheme{--noname} to indicate \scheme{#false}}
-;;> \item{[\scheme{char} - a single character}
+;;> \item{\scheme{char} - a single character}
 ;;> \item{\scheme{integer} - an exact integer}
 ;;> \item{\scheme{real} - any real number}
 ;;> \item{\scheme{number} - any real or complex number}
@@ -67,7 +67,7 @@
 ;;>     (or
 ;;>      (feed "feed the animals" () (,feed animals ...))
 ;;>      (wash "wash the animals" (@ (soap boolean)) (,wash animals ...))
-;;>      (help "print help" (,app-help-command)))
+;;>      (help "print help" (,app-help-command))))
 ;;>   (command-line)
 ;;>   (conf-load (string-append (get-environment-variable "HOME") "/.zoo")))
 ;;> }
@@ -140,7 +140,7 @@
       (app-help spec args)
       (error "Expected a command"))
      (else
-      (error "Unknown command" (cdr args))))))
+      (error "Unknown command" args)))))
 
 ;;> Parse a single command-line argument from \var{args} according to
 ;;> \var{conf-spec}, and returns a list of two values: the
@@ -339,11 +339,30 @@
     (cond ((and (= 2 (length prefix))) '())
           ((null? prefix) '())
           (else (reverse (cdr (reverse  prefix))))))
+  (define (all-opt-names opt-spec)
+    ;; TODO: nested options
+    (let lp ((ls opt-spec) (res '()))
+      (if (null? ls)
+          (map (lambda (x) (if (symbol? x) (symbol->string x) x))
+               (remove char? (reverse res)))
+          (let ((o (car ls)))
+            (lp (cdr ls)
+                (append (if (and (pair? (cddr o)) (pair? (third o)))
+                            (third o)
+                            '())
+                        (cons (car o) res)))))))
   (let ((fail (if (pair? o)
                   (car o)
                   (lambda (prefix spec opt args reason)
-                    ;; TODO: search for closest option in "unknown" case
-                    (error reason opt)))))
+                    (cond
+                     ((and (string=? reason "unknown option")
+                           (find-nearest-edits opt (all-opt-names spec)))
+                      => (lambda (similar)
+                           (if (pair? similar)
+                               (error reason opt "Did you mean: " similar)
+                               (error reason opt))))
+                     (else
+                      (error reason opt)))))))
     (cond
      ((null? spec)
       (error "no procedure in application spec"))

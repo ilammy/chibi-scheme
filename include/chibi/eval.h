@@ -46,8 +46,6 @@ enum sexp_opcode_classes {
   SEXP_OPC_NUM_OP_CLASSES
 };
 
-SEXP_API struct sexp_opcode_struct* sexp_primitive_opcodes;
-
 #if SEXP_USE_DEBUG_VM || SEXP_USE_PROFILE_VM || SEXP_USE_STATIC_LIBS
 SEXP_API const char** sexp_opcode_names;
 #endif
@@ -239,6 +237,7 @@ SEXP_API sexp sexp_9p_respond (sexp ctx, sexp self, sexp_sint_t n, sexp req, sex
 SEXP_API sexp sexp_9p_responderror (sexp ctx, sexp self, sexp_sint_t n, sexp req);
 #else
 SEXP_API sexp sexp_get_port_fileno (sexp ctx, sexp self, sexp_sint_t n, sexp port);
+SEXP_API sexp sexp_stream_portp_op (sexp ctx, sexp self, sexp_sint_t n, sexp port);
 #endif
 
 #if SEXP_USE_SIMPLIFY

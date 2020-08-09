@@ -124,7 +124,7 @@
      ((eqv? c #\<) (read-escaped in term `(#\; #\t #\l #\& ,@ls)))
      ;;((eqv? c #\>) (read-escaped in term `(#\; #\t #\g #\& ,@ls)))
      ((eqv? c #\&) (read-escaped in term `(#\; #\p #\m #\a #\& ,@ls)))
-     ;;((eqv? c #\\) (read-escaped in term (cons (read-char in) (cons c ls))))
+     ((eqv? c #\\) (read-escaped in term (cons (read-char in) (cons c ls))))
      (else (read-escaped in term (cons c ls))))))
 
 (define (read-to-eol in ls)
@@ -162,7 +162,8 @@
              syntax-case parameterize module library require
              require-extension use use-modules import import-immutable
              define-module select-module provide autoload export
-             only except rename prefix include include-shared
+             only except rename prefix drop-prefix alias-for
+             include include-ci include-shared
              condition-case guard protect cond-expand for with to by
              in-list in-lists in-string in-string-reverse
              in-vector in-vector-reverse in-file listing appending
