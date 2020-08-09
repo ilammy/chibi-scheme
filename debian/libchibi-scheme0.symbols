@@ -9,9 +9,10 @@ libchibi-scheme.so.0 libchibi-scheme0 #MINVER#
  sexp_append2_op@Base 0.8.0
  sexp_apply1@Base 0.8.0
  sexp_apply2@Base 0.8.0
+ sexp_apply3@Base 0.9.0
  sexp_apply@Base 0.8.0
  sexp_apply_no_err_handler@Base 0.8.0
- sexp_apply_writer@Base 0.8.0
+#sexp_apply_writer@Base 0.8.0 # removed in 0.9.0
  sexp_asin@Base 0.8.0
  sexp_assq_op@Base 0.8.0
  sexp_atan@Base 0.8.0
@@ -82,6 +83,7 @@ libchibi-scheme.so.0 libchibi-scheme0 #MINVER#
  sexp_dk@Base 0.8.0
  sexp_double_to_bignum@Base 0.8.0
  sexp_double_to_ratio@Base 0.8.0
+ sexp_double_to_ratio_2@Base 0.9.0
  sexp_emit@Base 0.8.0
  sexp_emit_return@Base 0.8.0
  sexp_env_cell@Base 0.8.0
@@ -110,6 +112,7 @@ libchibi-scheme.so.0 libchibi-scheme0 #MINVER#
  sexp_finalize_dl@Base 0.8.0
  sexp_finalize_fileno@Base 0.8.0
  sexp_finalize_port@Base 0.8.0
+ sexp_finalize_uvector@Base 0.9.0
  sexp_find_module_file@Base 0.8.0
  sexp_find_module_file_op@Base 0.8.0
  sexp_find_module_file_raw@Base 0.8.0
@@ -121,7 +124,7 @@ libchibi-scheme.so.0 libchibi-scheme0 #MINVER#
  sexp_free_vars@Base 0.8.0
  sexp_gc@Base 0.8.0
  sexp_gc_heap_pack@Base 0.8.0
- sexp_gc_heap_stats_print@Base 0.8.0
+#sexp_gc_heap_stats_print@Base 0.8.0 # removed in 0.9.0
  sexp_gc_heap_walk@Base 0.8.0
  sexp_gc_init@Base 0.8.0
  sexp_generate@Base 0.8.0
@@ -144,6 +147,8 @@ libchibi-scheme.so.0 libchibi-scheme0 #MINVER#
  sexp_is_separator@Base 0.8.0
  sexp_length_op@Base 0.8.0
  sexp_list2@Base 0.8.0
+ sexp_list3@Base 0.9.0
+ sexp_list_to_uvector_op@Base 0.9.0
  sexp_list_to_vector_op@Base 0.8.0
  sexp_listp_op@Base 0.8.0
  sexp_load_image@Base 0.8.0
@@ -173,6 +178,7 @@ libchibi-scheme.so.0 libchibi-scheme0 #MINVER#
  sexp_make_heap@Base 0.8.0
  sexp_make_input_port@Base 0.8.0
  sexp_make_integer@Base 0.8.0
+ sexp_make_integer_from_lsint@Base 0.9.0
  sexp_make_lambda@Base 0.8.0
  sexp_make_lit@Base 0.8.0
  sexp_make_non_null_input_port@Base 0.8.0
@@ -191,9 +197,11 @@ libchibi-scheme.so.0 libchibi-scheme0 #MINVER#
  sexp_make_trampoline@Base 0.8.0
  sexp_make_type_predicate_op@Base 0.8.0
  sexp_make_unsigned_integer@Base 0.8.0
+ sexp_make_unsigned_integer_from_luint@Base 0.9.0
+ sexp_make_uvector_op@Base 0.9.0
  sexp_make_vector_op@Base 0.8.0
  sexp_mark@Base 0.8.0
- sexp_mark_one@Base 0.8.0
+#sexp_mark_one@Base 0.8.0 # removed in 0.9.0
  sexp_maybe_block_output_port@Base 0.8.0
  sexp_maybe_block_port@Base 0.8.0
  sexp_maybe_unblock_port@Base 0.8.0
@@ -270,6 +278,7 @@ libchibi-scheme.so.0 libchibi-scheme0 #MINVER#
  sexp_sqrt@Base 0.8.0
  sexp_stack_trace@Base 0.8.0
  sexp_stack_trace_op@Base 0.8.0
+ sexp_stream_portp_op@Base 0.9.0
  sexp_string_cat3@Base 0.8.0
  sexp_string_cmp_op@Base 0.8.0
  sexp_string_concatenate_op@Base 0.8.0
@@ -295,6 +304,7 @@ libchibi-scheme.so.0 libchibi-scheme0 #MINVER#
  sexp_tan@Base 0.8.0
  sexp_thread_parameters@Base 0.8.0
  sexp_thread_parameters_set@Base 0.8.0
+ sexp_to_double@Base 0.9.0
  sexp_to_inexact@Base 0.8.0
  sexp_trunc@Base 0.8.0
  sexp_try_alloc@Base 0.8.0
@@ -313,4 +323,5 @@ libchibi-scheme.so.0 libchibi-scheme0 #MINVER#
  sexp_write_simple_object@Base 0.8.0
  sexp_write_to_string@Base 0.8.0
  sexp_write_utf8_char@Base 0.8.0
+ sexp_write_uvector@Base 0.9.0
  sexp_xtype_exception@Base 0.8.0
