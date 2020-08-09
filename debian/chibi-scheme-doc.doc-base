@@ -6,4 +6,4 @@ Section: Programming
 
 Format: HTML
 Index: /usr/share/doc/chibi-scheme/chibi.html
-Files: /usr/share/doc/chibi-scheme/chibi.html /usr/share/doc/chibi-scheme/lib/chibi/*.html /usr/share/doc/chibi-scheme/lib/chibi/crypto/*.html /usr/share/doc/chibi-scheme/lib/chibi/monad/*.html /usr/share/doc/chibi-scheme/lib/chibi/show/*.html
+Files: /usr/share/doc/chibi-scheme/chibi.html /usr/share/doc/chibi-scheme/lib/chibi/*.html /usr/share/doc/chibi-scheme/lib/chibi/crypto/*.html /usr/share/doc/chibi-scheme/lib/chibi/monad/*.html
