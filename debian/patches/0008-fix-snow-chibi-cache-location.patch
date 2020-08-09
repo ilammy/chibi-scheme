@@ -6,7 +6,7 @@ This is not acceptable and we should use a different directory.
 
 --- a/lib/chibi/snow/commands.scm
 +++ b/lib/chibi/snow/commands.scm
-@@ -1122,7 +1122,7 @@
+@@ -1151,7 +1151,7 @@
    (cond
     ((zero? (current-user-id))
      (or (conf-get cfg 'local-root-repository)

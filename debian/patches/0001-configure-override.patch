@@ -13,7 +13,7 @@ the build to consume.
 
 --- a/configure
 +++ b/configure
-@@ -1,5 +1,25 @@
+@@ -1,5 +1,35 @@
 -#!/bin/sh
 +#!/usr/bin/perl
  
@@ -26,6 +26,7 @@ the build to consume.
 +select(FH);
 +
 +my $prefix;
++my $libdir;
 +
 +foreach my $arg (@ARGV) {
 +    if ($arg =~ m/^--(.*)=(.*)$/) {
@@ -35,11 +36,20 @@ the build to consume.
 +            if ($name eq 'prefix') {
 +                $prefix = $value;
 +            }
++            if ($name eq 'libdir') {
++                $libdir = $value;
++                $libdir =~ s/\$\{prefix\}/$prefix/;
++            }
 +            $name = uc $name;
 +            $value =~ s/\$\{prefix\}/$prefix/;
 +            print qq($name="$value"\n);
 +        }
 +    }
 +}
++
++my $libdir_suffix = substr($libdir, length($prefix) + 1);
++
++print qq(SNOWPREFIX="/usr/local"\n);
++print qq(SNOWLIBDIR="/usr/local/$libdir_suffix"\n);
 +
 +close(FH);
