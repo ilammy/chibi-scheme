@@ -60,3 +60,8 @@ Maintainer guide
 
       - `Makefile` and its sisters
       - `include/*` for API/ABI changes
+
+ 7. **Update manpages.**
+
+    Review new command-line options worth describing and update the man pages as necessary.
+    Regardless of substantial changes, update the release version, name, and date.
