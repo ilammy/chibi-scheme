@@ -11,7 +11,7 @@ Vcs-Git: https://github.com/ilammy/chibi-scheme.git
 
 Package: chibi-scheme
 Architecture: any
-Depends: libchibi-scheme0 (>= 0.8), ${shlibs:Depends}, ${misc:Depends}
+Depends: ${shlibs:Depends}, ${misc:Depends}
 Recommends: chibi-scheme-common
 Suggests: chibi-scheme-doc
 Description: embeddable Scheme interpreter
@@ -37,7 +37,7 @@ Description: embeddable Scheme interpreter (documentation)
 
 Package: chibi-scheme-common
 Architecture: all
-Depends: libchibi-scheme-ffi (>= 0.8), ${misc:Depends}
+Depends: libchibi-scheme-ffi (>= 0.9.0), ${misc:Depends}
 Description: embeddable Scheme interpreter (standard libraries)
  Chibi-Scheme is a really small embeddable interpreter of R7RS Scheme,
  intended for use as an extension and scripting language in C programs.
@@ -82,7 +82,7 @@ Description: embeddable Scheme interpreter (development files)
 Package: libchibi-scheme-ffi
 Section: libs
 Architecture: any
-Depends: libchibi-scheme0 (>= 0.8), ${shlibs:Depends}, ${misc:Depends}
+Depends: ${shlibs:Depends}, ${misc:Depends}
 Recommends: chibi-scheme-common
 Description: embeddable Scheme interpreter (native modules)
  Chibi-Scheme is a really small embeddable interpreter of R7RS Scheme,

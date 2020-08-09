@@ -1,7 +1,14 @@
+chibi-scheme (0.9.0-1) UNRELEASED; urgency=medium
+
+  * Initial Debian release. (Closes: #928753: ITP: chibi-scheme --
+    embeddable Scheme interpreter)
+  * New upstream release.
+
+ -- Alexei Lozovsky <me@ilammy.net>  Sun, 09 Aug 2020 11:23:00 +0300
+
 chibi-scheme (0.8.0-1) UNRELEASED; urgency=medium
 
-  * Initial release. (Closes: #928753: ITP: chibi-scheme -- embeddable
-    Scheme interpreter)
+  * Initial release.
   * Updated and extended man pages.
   * Updated and extended Bash completions.
   * Disabled (experimental) images when using Snow to avoid crashes.
