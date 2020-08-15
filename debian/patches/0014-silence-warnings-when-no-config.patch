@@ -1,0 +1,57 @@
+Don't warn about missing config file
+
+This reverts commit c3189ebc9d70ebfb44d9278ae25fb61cf2fc4ef6
+("warn when config fails to load", 2020-01-06).
+
+The commit has introduced a warning message when configuration file
+cannot be read. However, if the configuration file is missing
+altogether, the default value should be returned without any
+additional annoying output.
+
+In particular "snow-chibi" uses a configuration file in the home
+directory (~/.snow/config.scm) which is not created by default.
+If it is missing, every Snow command outputs a warning.
+
+It's not very convenient to inspect the exception to see if it is
+caused by a missing path (ENOENT) or something else, so for the time
+being let's just revert this change.
+
+--- a/lib/chibi/config.scm
++++ b/lib/chibi/config.scm
+@@ -111,12 +111,7 @@
+      (else (lp (cdr ls) (cons (car ls) rev))))))
+ 
+ (define (read-from-file file . opt)
+-  (guard (exn
+-          (else
+-           (warn "couldn't load config:" file)
+-           (print-exception exn)
+-           (print-stack-trace exn)
+-           (and (pair? opt) (car opt))))
++  (guard (exn (else (and (pair? opt) (car opt))))
+     (call-with-input-file file read)))
+ 
+ (define (alist? x)
+--- a/lib/chibi/config.sld
++++ b/lib/chibi/config.sld
+@@ -10,18 +10,6 @@
+   ;; This is only used for config verification, it's acceptable to
+   ;; substitute file existence for the stronger directory check.
+   (cond-expand
+-   (chibi
+-    (import (only (meta) warn))
+-    (import (only (chibi) print-exception print-stack-trace))
+-    (import (only (chibi filesystem) file-directory?)))
+-   (else
+-    (begin
+-      (define file-directory? file-exists?)
+-      (define (print-exception exn) (write exn))
+-      (define (print-stack-trace . o) #f)
+-      (define (warn msg . args)
+-        (let ((err (current-error-port)))
+-          (display msg err)
+-          (for-each (lambda (x) (display " " err) (write x err)) args)
+-          (newline err))))))
++   (chibi (import (only (chibi filesystem) file-directory?)))
++   (else (begin (define file-directory? file-exists?))))
+   (include "config.scm"))
