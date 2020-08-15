@@ -3,6 +3,7 @@ chibi-scheme (0.9.0-1) UNRELEASED; urgency=medium
   * Initial Debian release. (Closes: #928753: ITP: chibi-scheme --
     embeddable Scheme interpreter)
   * New upstream release.
+  * Enabled back stabilized images for Snow.
 
  -- Alexei Lozovsky <me@ilammy.net>  Sun, 09 Aug 2020 11:23:00 +0300
 

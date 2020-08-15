@@ -4,7 +4,7 @@
 #004-fix-meta-file-deps.patch
 0005-fix-pkg-config-for-static.patch
 0006-fix-manpage-path.patch
-0007-disable-snow-image.patch
+#007-disable-snow-image.patch
 0008-fix-snow-chibi-cache-location.patch
 #009-fix-snow-install-directory.patch
 0010-hide-extra-symbols.patch
