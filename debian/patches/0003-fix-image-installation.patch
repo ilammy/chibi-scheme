@@ -5,7 +5,7 @@ is installed to DESTDIR instead of the proper location.
 
 --- a/Makefile
 +++ b/Makefile
-@@ -391,9 +391,9 @@
+@@ -392,9 +392,9 @@
  install: install-base
  ifneq "$(IMAGE_FILES)" ""
  	echo "Generating images"
