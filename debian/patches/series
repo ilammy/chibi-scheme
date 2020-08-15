@@ -10,3 +10,4 @@
 0010-hide-extra-symbols.patch
 #011-suppress-cc-warnings.patch
 #012-snow-remove-use-sudo.patch
+0013-remove-chibi-ffi-debug-chatter.patch

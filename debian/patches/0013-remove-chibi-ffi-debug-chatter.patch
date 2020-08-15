@@ -1,0 +1,17 @@
+Remove unnecessary chibi-ffi debug output
+
+This reverts commit bfcab41056554e856a5c911315815c3efb86aa46 ("add
+cc command line to ffi debug output", 2020-05-12). It adds some debug
+output to chibi-ffi which is annoying, especially when installing
+packages with snow-chibi that have some native extensions.
+
+--- a/tools/chibi-ffi
++++ b/tools/chibi-ffi
+@@ -2366,7 +2366,4 @@
+                      (macosx (append '("-dynamiclib" "-Oz") ',base-args))
+                      (else (append '("-fPIC" "-shared" "-Os") ',base-args)))))
+                  (cc (or cc (if *c++?* "c++" "cc"))))
+-            (display ";; " (current-error-port))
+-            (write (cons cc args) (current-error-port))
+-            (newline (current-error-port))
+             (execute cc (cons cc args))))))))))
