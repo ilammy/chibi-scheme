@@ -48,10 +48,10 @@ sexp sexp_string_ci_hash (sexp ctx, sexp self, sexp_sint_t n, sexp str, sexp bou
 }
 
 static sexp_uint_t hash_one (sexp ctx, sexp obj, sexp_uint_t bound, sexp_sint_t depth) {
-  sexp_uint_t acc = FNV_OFFSET_BASIS, size;
+  sexp_uint_t acc = FNV_OFFSET_BASIS, right_size;
   sexp_sint_t i, len;
   sexp t, *p;
-  char *p0;
+  char *p0, *p_right;
  loop:
   if (obj) {
 #if SEXP_USE_FLONUMS
@@ -64,12 +64,14 @@ static sexp_uint_t hash_one (sexp ctx, sexp obj, sexp_uint_t bound, sexp_sint_t 
         t = sexp_object_type(ctx, obj);
         p = (sexp*) (((char*)obj) + sexp_type_field_base(t));
         p0 = ((char*)obj) + offsetof(struct sexp_struct, value);
+        /* if the field_base is 0, skip to the value */
         if ((sexp)p == obj) p=(sexp*)p0;
-        /* hash trailing non-object data */
-        size = sexp_type_size_of_object(t, obj)-offsetof(struct sexp_struct, value);
-        p0 = ((char*)p + sexp_type_num_slots_of_object(t,obj)*sizeof(sexp));
-        if (((char*)obj + size) > p0)
-          for (i=0; i<(sexp_sint_t)size; i++) {acc *= FNV_PRIME; acc ^= p0[i];}
+        /* hash uvector data (otherwise strings all hash to the same value) */
+        if (sexp_bytesp(obj) || sexp_uvectorp(obj) || sexp_bignump(obj)) {
+          p_right = ((char*)p + sexp_type_num_slots_of_object(t, obj)*sizeof(sexp));
+          right_size = ((char*)obj + sexp_type_size_of_object(t, obj)) - p_right;
+          for (i=0; i<right_size; i++) {acc *= FNV_PRIME; acc ^= p_right[i];}
+        }
         /* hash eq-object slots */
         len = sexp_type_num_eq_slots_of_object(t, obj);
         if (len > 0) {
@@ -170,7 +172,7 @@ static void sexp_regrow_hash_table (sexp ctx, sexp ht, sexp oldbuckets, sexp has
   sexp_gc_var1(newbuckets);
   sexp_gc_preserve1(ctx, newbuckets);
   newbuckets = sexp_make_vector(ctx, sexp_make_fixnum(newsize), SEXP_NULL);
-  if (newbuckets) {
+  if (newbuckets && !sexp_exceptionp(newbuckets)) {
     oldvec = sexp_vector_data(oldbuckets);
     newvec = sexp_vector_data(newbuckets);
     for (i=0; i<oldsize; i++) {
