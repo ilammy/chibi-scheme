@@ -66,3 +66,34 @@ Maintainer guide
 
     Review new command-line options worth describing and update the man pages as necessary.
     Regardless of substantial changes, update the release version, name, and date.
+
+## How to test the package
+
+ 1. **Smoke testing with `debuild`.**
+
+    Run
+
+        debuild -us -uc
+
+    this should produce packages with no warnings.
+    Install them with `dpkg`, perform smoke testing:
+
+      - `chibi-scheme` is operational
+      - `snow-chibi` is operational
+      - `man chibi-scheme` looks okay
+
+ 2. **Testing with `autopkgtest`.**
+
+    Run tests against a base image (from parent directory of the source tree):
+
+        autopkgtest chibi-scheme_*.dsc -- qemu autopkgtest-unstable.img
+
+    Image can be built easily like this:
+
+        sudo autopkgtest-build-qemu unstable autopkgtest-unstable.img
+
+    Since Debian **unstable** is... well... unstable, the image needs to be rebuilt regualarly,
+    if you are going to test against Sid.
+
+    [Here's entry point to docs](https://wiki.debian.org/ContinuousIntegration/autopkgtest) if you get lost.
+    But usually `man autopkgtest` is enough.
