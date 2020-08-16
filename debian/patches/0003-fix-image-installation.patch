@@ -1,20 +1,46 @@
 Fix generating image files
 
-Don't cd to filesystem root as that messes up module search path when Chibi
-is installed to DESTDIR instead of the proper location.
+If the images are generated with Chibi installed into DESTDIR then
+*this* will be the path stored in bytecode. This means that stack
+traces will contain some random path in them which is not nice.
+
+Work around the issue by building images as if Chibi is already
+installed in the system, using chroot to simulate that. That way
+correct paths will be stored in the bytecode.
+
+However, it's as straightforward as it looks. First of all, DESTDIR
+does not contain the dependencies that Chibi needs to run. We inspect
+the dynamic dependencies of the binary, remove libchibi-scheme.so from
+that list (it's already installed), and copy the libraries to where
+the linker-loader expects them. The dynamic linker-loader itself needs
+to be copied into the DESTDIR itself. After building the images, we
+also need to remove all the extra stuff since it shouldn't be packaged,
+or dpkg will complain.
+
+Finally, chroot requires special system capabilities and we don't want
+the build to require and run under a real root user. Therefore
+"fakechroot" is used to get the chroot capabilities.
 
 --- a/Makefile
 +++ b/Makefile
-@@ -392,9 +392,9 @@
+@@ -392,9 +392,17 @@
  install: install-base
  ifneq "$(IMAGE_FILES)" ""
  	echo "Generating images"
 -	-cd / && LD_LIBRARY_PATH="$(DESTDIR)$(SOLIBDIR):$(LD_LIBRARY_PATH)" DYLD_LIBRARY_PATH="$(DESTDIR)$(SOLIBDIR):$(DYLD_LIBRARY_PATH)" CHIBI_MODULE_PATH="$(DESTDIR)$(MODDIR):$(DESTDIR)$(BINMODDIR)" $(DESTDIR)$(BINDIR)/chibi-scheme$(EXE) -d $(DESTDIR)$(MODDIR)/chibi.img
 -	-cd / && LD_LIBRARY_PATH="$(DESTDIR)$(SOLIBDIR):$(LD_LIBRARY_PATH)" DYLD_LIBRARY_PATH="$(DESTDIR)$(SOLIBDIR):$(DYLD_LIBRARY_PATH)" CHIBI_MODULE_PATH="$(DESTDIR)$(MODDIR):$(DESTDIR)$(BINMODDIR)" $(DESTDIR)$(BINDIR)/chibi-scheme$(EXE) -xscheme.red -d $(DESTDIR)$(MODDIR)/red.img
 -	-cd / && LD_LIBRARY_PATH="$(DESTDIR)$(SOLIBDIR):$(LD_LIBRARY_PATH)" DYLD_LIBRARY_PATH="$(DESTDIR)$(SOLIBDIR):$(DYLD_LIBRARY_PATH)" CHIBI_MODULE_PATH="$(DESTDIR)$(MODDIR):$(DESTDIR)$(BINMODDIR)" $(DESTDIR)$(BINDIR)/chibi-scheme$(EXE) -mchibi.snow.commands -mchibi.snow.interface -mchibi.snow.package -mchibi.snow.utils -d $(DESTDIR)$(MODDIR)/snow.img
-+	-LD_LIBRARY_PATH="$(DESTDIR)$(SOLIBDIR):$(LD_LIBRARY_PATH)" DYLD_LIBRARY_PATH="$(DESTDIR)$(SOLIBDIR):$(DYLD_LIBRARY_PATH)" CHIBI_MODULE_PATH="$(DESTDIR)$(MODDIR):$(DESTDIR)$(BINMODDIR)" $(DESTDIR)$(BINDIR)/chibi-scheme$(EXE) -d $(DESTDIR)$(MODDIR)/chibi.img
-+	-LD_LIBRARY_PATH="$(DESTDIR)$(SOLIBDIR):$(LD_LIBRARY_PATH)" DYLD_LIBRARY_PATH="$(DESTDIR)$(SOLIBDIR):$(DYLD_LIBRARY_PATH)" CHIBI_MODULE_PATH="$(DESTDIR)$(MODDIR):$(DESTDIR)$(BINMODDIR)" $(DESTDIR)$(BINDIR)/chibi-scheme$(EXE) -xscheme.red -d $(DESTDIR)$(MODDIR)/red.img
-+	-LD_LIBRARY_PATH="$(DESTDIR)$(SOLIBDIR):$(LD_LIBRARY_PATH)" DYLD_LIBRARY_PATH="$(DESTDIR)$(SOLIBDIR):$(DYLD_LIBRARY_PATH)" CHIBI_MODULE_PATH="$(DESTDIR)$(MODDIR):$(DESTDIR)$(BINMODDIR)" $(DESTDIR)$(BINDIR)/chibi-scheme$(EXE) -mchibi.snow.commands -mchibi.snow.interface -mchibi.snow.package -mchibi.snow.utils -d $(DESTDIR)$(MODDIR)/snow.img
++	LD_LIBRARY_PATH="$(DESTDIR)$(SOLIBDIR):$(LD_LIBRARY_PATH)" ldd $(DESTDIR)$(BINDIR)/chibi-scheme$(EXE) | awk '$$2 == "=>" && !($$3 ~ /chibi-scheme/) {print $$3}' | xargs dirname | uniq | xargs -I {} mkdir -p $(DESTDIR)/{}
++	LD_LIBRARY_PATH="$(DESTDIR)$(SOLIBDIR):$(LD_LIBRARY_PATH)" ldd $(DESTDIR)$(BINDIR)/chibi-scheme$(EXE) | awk '$$2 == "=>" && !($$3 ~ /chibi-scheme/) {print $$3}' | xargs -I {} cp {} $(DESTDIR)/{}
++	LD_LIBRARY_PATH="$(DESTDIR)$(SOLIBDIR):$(LD_LIBRARY_PATH)" ldd $(DESTDIR)$(BINDIR)/chibi-scheme$(EXE) | awk '$$1 ~ /ld-linux/ {print $$1}'                       | xargs dirname | uniq | xargs -I {} mkdir -p $(DESTDIR)/{}
++	LD_LIBRARY_PATH="$(DESTDIR)$(SOLIBDIR):$(LD_LIBRARY_PATH)" ldd $(DESTDIR)$(BINDIR)/chibi-scheme$(EXE) | awk '$$1 ~ /ld-linux/ {print $$1}'                       | xargs -I {} cp {} $(DESTDIR)/{}
++	-fakechroot chroot $(DESTDIR) $(BINDIR)/chibi-scheme$(EXE) -d $(MODDIR)/chibi.img
++	-fakechroot chroot $(DESTDIR) $(BINDIR)/chibi-scheme$(EXE) -xscheme.red -d $(MODDIR)/red.img
++	-fakechroot chroot $(DESTDIR) $(BINDIR)/chibi-scheme$(EXE) -mchibi.snow.commands -mchibi.snow.interface -mchibi.snow.package -mchibi.snow.utils -d $(MODDIR)/snow.img
++	LD_LIBRARY_PATH="$(DESTDIR)$(SOLIBDIR):$(LD_LIBRARY_PATH)" ldd $(DESTDIR)$(BINDIR)/chibi-scheme$(EXE) | awk '$$1 ~ /ld-linux/ {print $$1}'                       | xargs -I {} rm $(DESTDIR)/{}
++	LD_LIBRARY_PATH="$(DESTDIR)$(SOLIBDIR):$(LD_LIBRARY_PATH)" ldd $(DESTDIR)$(BINDIR)/chibi-scheme$(EXE) | awk '$$1 ~ /ld-linux/ {print $$1}'                       | xargs dirname | uniq | xargs -I {} rmdir --ignore-fail-on-non-empty $(DESTDIR)/{}
++	LD_LIBRARY_PATH="$(DESTDIR)$(SOLIBDIR):$(LD_LIBRARY_PATH)" ldd $(DESTDIR)$(BINDIR)/chibi-scheme$(EXE) | awk '$$2 == "=>" && !($$3 ~ /chibi-scheme/) {print $$3}' | xargs -I {} rm $(DESTDIR)/{}
++	LD_LIBRARY_PATH="$(DESTDIR)$(SOLIBDIR):$(LD_LIBRARY_PATH)" ldd $(DESTDIR)$(BINDIR)/chibi-scheme$(EXE) | awk '$$2 == "=>" && !($$3 ~ /chibi-scheme/) {print $$3}' | xargs dirname | uniq | xargs -I {} rmdir --ignore-fail-on-non-empty $(DESTDIR)/{}
  endif
  
  uninstall:
