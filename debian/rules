@@ -1,11 +1,14 @@
 #!/usr/bin/make -f
 
+DEB_BUILD_MAINT_OPTIONS = hardening=+all
+
+# This defines and exports DEB_HOST_MULTIARCH and a host of other garbage
+include /usr/share/dpkg/default.mk
+
 # Manually implement multiarch support here since debhelper seems to pass
 # this information in a proper form only to the Autoconf build system.
 # When using "--buildsystem=make", no multiarch support is added.
 # Chibi does not support Autoconf so we have to fix up the paths here.
-DEB_HOST_MULTIARCH ?= $(shell dpkg-architecture -qDEB_HOST_MULTIARCH)
-
 EXTRA_ARGS += PREFIX="/usr"
 EXTRA_ARGS += LIBDIR="/usr/lib/$(DEB_HOST_MULTIARCH)"
 EXTRA_ARGS += SNOWPREFIX="/usr/local"
@@ -18,11 +21,11 @@ override_dh_auto_build:
 # Build the static library first. It requires special compilation flags without
 # -fPIC and dlopen() support.
 	dh_auto_build -- libchibi-scheme.a $(EXTRA_ARGS) CLIBFLAGS= SEXP_USE_DL=0
-	make clean
+	$(MAKE) clean
 # After cleaning up the object files we can build everything else.
 	dh_auto_build -- all $(EXTRA_ARGS)
 # Additionally, build the HTML documentation for Chibi and libraries.
-	make doc -j$(shell nproc || echo 1)
+	$(MAKE) doc
 
 # Run a bit more tests than "make test" usually does to verify
 # SRFI libraries and FFI things.
