@@ -1,7 +1,3 @@
 version=4
-
-# GitHub releases
-opts="filenamemangle=s/([\d\.]+)\.tar\.gz/chibi-scheme-$1.tar.gz/" \
-    https://github.com/ashinn/chibi-scheme/releases \
-    /ashinn/chibi-scheme/archive/([\d\.]+)\.tar\.gz \
-    debian uupdate
+https://github.com/ashinn/@PACKAGE@/releases \
+ .*/v?@ANY_VERSION@@ARCHIVE_EXT@
