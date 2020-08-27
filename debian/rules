@@ -1,6 +1,15 @@
 #!/usr/bin/make -f
 
-EXTRA_ARGS = $(shell cat debian/extra-make-variables.mk)
+# Manually implement multiarch support here since debhelper seems to pass
+# this information in a proper form only to the Autoconf build system.
+# When using "--buildsystem=make", no multiarch support is added.
+# Chibi does not support Autoconf so we have to fix up the paths here.
+DEB_HOST_MULTIARCH ?= $(shell dpkg-architecture -qDEB_HOST_MULTIARCH)
+
+EXTRA_ARGS += PREFIX="/usr"
+EXTRA_ARGS += LIBDIR="/usr/lib/$(DEB_HOST_MULTIARCH)"
+EXTRA_ARGS += SNOWPREFIX="/usr/local"
+EXTRA_ARGS += SNOWLIBDIR="/usr/local/lib/$(DEB_HOST_MULTIARCH)"
 
 %:
 	dh $@
