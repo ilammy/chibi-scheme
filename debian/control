@@ -52,7 +52,7 @@ Description: embeddable Scheme interpreter (standard library images)
  Chibi-Scheme is a really small embeddable interpreter of R7RS Scheme,
  intended for use as an extension and scripting language in C programs.
  .
- This package provides preloaded images for use with "chibi-scheme -i".
+ A dummy package providing preloaded images for use with "chibi-scheme -i".
  They allow faster startup times when using common library sets.
 
 Package: libchibi-scheme0

@@ -30,4 +30,6 @@ override_dh_auto_test:
 	dh_auto_test -- test-all test-unicode $(EXTRA_ARGS)
 
 override_dh_auto_install:
-	dh_auto_install -- $(EXTRA_ARGS)
+# Make sure that "make install" does not build and install image files.
+# Those will be created on the user machine at package configuration time.
+	dh_auto_install -- $(EXTRA_ARGS) IMAGE_FILES=

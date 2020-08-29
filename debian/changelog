@@ -3,8 +3,10 @@ chibi-scheme (0.9.1-1) UNRELEASED; urgency=medium
   * Initial Debian release. (Closes: #928753: ITP: chibi-scheme --
     embeddable Scheme interpreter)
   * New upstream release.
+  * Moved image generation into maintainer scripts of
+    "chibi-scheme-images" package for correct stack traces.
 
- -- Alexei Lozovsky <me@ilammy.net>  Sat, 15 Aug 2020 23:54:00 +0300
+ -- Alexei Lozovsky <me@ilammy.net>  Sat, 29 Aug 2020 19:38:23 +0300
 
 chibi-scheme (0.9.0-1) UNRELEASED; urgency=medium
 
