@@ -25,6 +25,11 @@ Files: lib/chibi/crypto/sha2-native.scm lib/chibi/crypto/sha2.c
 Copyright: 2015 Alexei Lozovsky <a.lozovsky@gmail.com>
 License: BSD-3-clause
 
+Files: lib/chibi/json.c lib/chibi/json.scm lib/chibi/json.sld lib/chibi/json-test.sld
+Copyright: 2020 Alex Shinn
+           2020 Ekaitz Zarraga
+License: BSD-3-clause
+
 Files: lib/scheme/time.c lib/scheme/time.sld lib/scheme/time/tai-to-utc-offset.sld lib/scheme/time/tai.sld
 Copyright: 2012 Alan Watson
 License: BSD-3-clause
@@ -46,8 +51,20 @@ Files: lib/srfi/135.scm lib/srfi/135.sld lib/srfi/135/kernel8.body.scm lib/srfi/
 Copyright: 2016 William D Clinger
 License: Expat
 
+Files: lib/srfi/146.sld lib/srfi/146/hash-test.sld lib/srfi/146/hash.scm lib/srfi/146/mapping.scm lib/srfi/146/rbtree.scm lib/srfi/146/test.sld
+Copyright: 2016 Marc Nieper-Wißkirchen
+License: Expat
+
+Files: lib/srfi/146/hamt-map-test.scm lib/srfi/146/hamt-map.scm lib/srfi/146/hamt-misc-test.scm lib/srfi/146/hamt-misc.scm lib/srfi/146/hamt-test.scm lib/srfi/146/hamt.scm lib/srfi/146/vector-edit-test.scm lib/srfi/146/vector-edit.scm
+Copyright: 2014 Arthur A. Gleckler
+License: Expat
+
 Files: lib/srfi/154.scm lib/srfi/154.sld
 Copyright: 2017 Marc Nieper-Wißkirchen
+License: Expat
+
+Files: lib/srfi/165.scm lib/srfi/165.sld
+Copyright: 2019 Marc Nieper-Wißkirchen
 License: Expat
 
 Files: debian/*
