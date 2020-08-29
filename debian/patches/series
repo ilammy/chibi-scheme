@@ -1,6 +1,6 @@
 #001-configure-override.patch
 #002-fix-install-paths.patch
-0003-fix-image-installation.patch
+#003-fix-image-installation.patch
 #004-fix-meta-file-deps.patch
 0005-fix-pkg-config-for-static.patch
 #006-fix-manpage-path.patch
