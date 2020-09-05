@@ -1,3 +1,7 @@
+From: Alexei Lozovsky <me@ilammy.net>
+Date: Fri, 4 Sep 2020 21:49:12 +0100
+Subject: silence-warnings-when-no-config
+
 Don't warn about missing config file
 
 This reverts commit c3189ebc9d70ebfb44d9278ae25fb61cf2fc4ef6
@@ -15,7 +19,13 @@ If it is missing, every Snow command outputs a warning.
 It's not very convenient to inspect the exception to see if it is
 caused by a missing path (ENOENT) or something else, so for the time
 being let's just revert this change.
+---
+ lib/chibi/config.scm |  7 +------
+ lib/chibi/config.sld | 16 ++--------------
+ 2 files changed, 3 insertions(+), 20 deletions(-)
 
+diff --git a/lib/chibi/config.scm b/lib/chibi/config.scm
+index e58bb5e..0afafcf 100644
 --- a/lib/chibi/config.scm
 +++ b/lib/chibi/config.scm
 @@ -111,12 +111,7 @@
@@ -32,6 +42,8 @@ being let's just revert this change.
      (call-with-input-file file read)))
  
  (define (alist? x)
+diff --git a/lib/chibi/config.sld b/lib/chibi/config.sld
+index d6dcab1..810f300 100644
 --- a/lib/chibi/config.sld
 +++ b/lib/chibi/config.sld
 @@ -10,18 +10,6 @@

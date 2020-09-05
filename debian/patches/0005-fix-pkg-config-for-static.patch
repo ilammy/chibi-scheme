@@ -1,11 +1,20 @@
+From: Alexei Lozovsky <me@ilammy.net>
+Date: Fri, 4 Sep 2020 21:49:12 +0100
+Subject: fix-pkg-config-for-static
+
 Fix pkg-config file for static linkage
 
 Remove "-dl" from the private library list. Not only this is an incorrect flag
 for gcc, but we do not need libdl to be linked when using static linkage.
+---
+ chibi-scheme.pc.in | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
+diff --git a/chibi-scheme.pc.in b/chibi-scheme.pc.in
+index 82dcd9e..dc81dc0 100644
 --- a/chibi-scheme.pc.in
 +++ b/chibi-scheme.pc.in
-@@ -3,5 +3,5 @@
+@@ -3,5 +3,5 @@ URL: http://synthcode.com/scheme/chibi/
  Description: Minimal Scheme Implementation for use as an Extension Language
  Version: ${version}
  Libs: -L${libdir} -lchibi-scheme

@@ -1,14 +1,5 @@
-#001-configure-override.patch
-#002-fix-install-paths.patch
-#003-fix-image-installation.patch
-#004-fix-meta-file-deps.patch
 0005-fix-pkg-config-for-static.patch
-#006-fix-manpage-path.patch
-#007-disable-snow-image.patch
 0008-fix-snow-chibi-cache-location.patch
-#009-fix-snow-install-directory.patch
 0010-hide-extra-symbols.patch
-#011-suppress-cc-warnings.patch
-#012-snow-remove-use-sudo.patch
 0013-remove-chibi-ffi-debug-chatter.patch
 0014-silence-warnings-when-no-config.patch

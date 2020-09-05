@@ -1,3 +1,7 @@
+From: Alexei Lozovsky <me@ilammy.net>
+Date: Fri, 4 Sep 2020 21:49:12 +0100
+Subject: hide-extra-symbols
+
 Hide unnecessarily exported symbols
 
 Chibi libraries (accidentally) make some internal symbols public.
@@ -11,7 +15,13 @@ they are hidden from shared library exports, but are visible
 when linking static libraries.
 
 All public symbols are prefixed with "sexp_*".
+---
+ include/chibi/sexp-hufftabs.c | 3 +++
+ include/chibi/sexp-hufftabs.h | 3 +++
+ 2 files changed, 6 insertions(+)
 
+diff --git a/include/chibi/sexp-hufftabs.c b/include/chibi/sexp-hufftabs.c
+index 7704184..2da963e 100644
 --- a/include/chibi/sexp-hufftabs.c
 +++ b/include/chibi/sexp-hufftabs.c
 @@ -1,5 +1,7 @@
@@ -22,11 +32,13 @@ All public symbols are prefixed with "sexp_*".
  char _huff_tab21[] = {
    '\x01',  '\x00',  '\x03',  '\x00',  '\x02',  '\x00',  '\x04',  '\x00',
  };
-@@ -90,3 +92,4 @@
+@@ -90,3 +92,4 @@ char _huff_tab2[] = {
       'e',     't',
  };
  
 +#pragma GCC visibility pop
+diff --git a/include/chibi/sexp-hufftabs.h b/include/chibi/sexp-hufftabs.h
+index 7704184..2da963e 100644
 --- a/include/chibi/sexp-hufftabs.h
 +++ b/include/chibi/sexp-hufftabs.h
 @@ -1,5 +1,7 @@
@@ -37,7 +49,7 @@ All public symbols are prefixed with "sexp_*".
  char _huff_tab21[] = {
    '\x01',  '\x00',  '\x03',  '\x00',  '\x02',  '\x00',  '\x04',  '\x00',
  };
-@@ -90,3 +92,4 @@
+@@ -90,3 +92,4 @@ char _huff_tab2[] = {
       'e',     't',
  };
  

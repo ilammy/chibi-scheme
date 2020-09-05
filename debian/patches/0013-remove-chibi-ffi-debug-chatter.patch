@@ -1,10 +1,19 @@
+From: Alexei Lozovsky <me@ilammy.net>
+Date: Fri, 4 Sep 2020 21:49:12 +0100
+Subject: remove-chibi-ffi-debug-chatter
+
 Remove unnecessary chibi-ffi debug output
 
 This reverts commit bfcab41056554e856a5c911315815c3efb86aa46 ("add
 cc command line to ffi debug output", 2020-05-12). It adds some debug
 output to chibi-ffi which is annoying, especially when installing
 packages with snow-chibi that have some native extensions.
+---
+ tools/chibi-ffi | 3 ---
+ 1 file changed, 3 deletions(-)
 
+diff --git a/tools/chibi-ffi b/tools/chibi-ffi
+index d8cd34a..c65da5a 100755
 --- a/tools/chibi-ffi
 +++ b/tools/chibi-ffi
 @@ -2366,7 +2366,4 @@
