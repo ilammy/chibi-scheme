@@ -1,0 +1,11 @@
+/*.debhelper.log
+/*.substvars
+/.debhelper/
+/chibi-scheme-common/
+/chibi-scheme-doc/
+/chibi-scheme-images/
+/debhelper-build-stamp
+/files
+/libchibi-scheme-dev/
+/libchibi-scheme-ffi/
+/libchibi-scheme0/
