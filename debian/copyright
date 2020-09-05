@@ -9,7 +9,7 @@ License: BSD-3-clause
 Files: benchmarks/gabriel/maze.sch benchmarks/gabriel/maze2.sch
 Copyright: 1995 Olin Shivers <shivers@ccs.neu.edu>
 License: permissive
- It's hard to determine the license as it's never explictly specified. But
+ It's hard to determine the license as it's never explicitly specified. But
  given the author's background in academia it it permissive. The source code
  can be obtained at https://www.ccs.neu.edu/home/shivers/mazes.html
 
