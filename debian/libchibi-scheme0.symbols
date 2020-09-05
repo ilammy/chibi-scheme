@@ -1,4 +1,5 @@
 libchibi-scheme.so.0 libchibi-scheme0 #MINVER#
+* Build-Depends-Package: libchibi-scheme-dev
  sexp_acos@Base 0.8.0
  sexp_add@Base 0.8.0
  sexp_add_module_directory_op@Base 0.8.0
