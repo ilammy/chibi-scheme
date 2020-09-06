@@ -3,4 +3,4 @@ chibi-scheme (0.9.1-1) unstable; urgency=medium
   * Initial Debian release. (Closes: #928753)
     - Thanks to Alexei Lozovsky <me@ilammy.net> who did all the hard lifting.
 
- -- Barak A. Pearlmutter <barak@pearlmutter.net>  Sun, 06 Sep 2020 14:10:28 +0100
+ -- Barak A. Pearlmutter <bap@debian.org>  Sun, 06 Sep 2020 14:22:27 +0100
