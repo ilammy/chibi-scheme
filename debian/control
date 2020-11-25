@@ -47,7 +47,7 @@ Description: embeddable Scheme interpreter (standard libraries)
 
 Package: chibi-scheme-images
 Architecture: all
-Depends: chibi-scheme-common (= ${binary:Version}), ${misc:Depends}
+Depends: chibi-scheme-common (= ${binary:Version}), ${misc:Depends}, chibi-scheme (= ${binary:Version})
 Description: embeddable Scheme interpreter (standard library images)
  Chibi-Scheme is a really small embeddable interpreter of R7RS Scheme,
  intended for use as an extension and scripting language in C programs.
