@@ -440,7 +440,7 @@ sexp sexp_lookup_type_op(sexp ctx, sexp self, sexp_sint_t n, sexp name, sexp id)
       if (sexp_stringp(id)
           && !(sexp_stringp(sexp_type_id(res))
                && strcmp(sexp_string_data(id), sexp_string_data(sexp_type_id(res))) == 0))
-        return SEXP_FALSE;
+        continue;
       return res;
     }
   return SEXP_FALSE;
@@ -549,6 +549,7 @@ void sexp_init_context_globals (sexp ctx) {
   sexp_global(ctx, SEXP_G_OOM_ERROR) = sexp_user_exception(ctx, SEXP_FALSE, "out of memory", SEXP_NULL);
   sexp_global(ctx, SEXP_G_OOS_ERROR) = sexp_user_exception(ctx, SEXP_FALSE, "out of stack space", SEXP_NULL);
   sexp_global(ctx, SEXP_G_ABI_ERROR) = sexp_user_exception(ctx, SEXP_FALSE, "incompatible ABI", SEXP_NULL);
+  sexp_global(ctx, SEXP_G_INTERRUPT_ERROR) = sexp_user_exception(ctx, SEXP_FALSE, "interrupt", SEXP_NULL);
   sexp_global(ctx, SEXP_G_QUOTE_SYMBOL) = sexp_intern(ctx, "quote", -1);
   sexp_global(ctx, SEXP_G_QUASIQUOTE_SYMBOL) = sexp_intern(ctx, "quasiquote", -1);
   sexp_global(ctx, SEXP_G_UNQUOTE_SYMBOL) = sexp_intern(ctx, "unquote", -1);
@@ -1805,6 +1806,8 @@ static sexp* sexp_fileno_cell(sexp ctx, sexp vec, int fd) {
   if (!sexp_vectorp(vec))
     return NULL;
   len = sexp_vector_length(vec);
+  if (len == 0)
+    return NULL;
   data = sexp_vector_data(vec);
   for (i = 0, cell = (fd * FNV_PRIME) % len; i < len; i++, cell=(cell+1)%len)
     if (!sexp_ephemeronp(data[cell])
@@ -1905,8 +1908,10 @@ sexp sexp_make_input_port (sexp ctx, FILE* in, sexp name) {
   /* here to avoid gc timing issues */
   if (in && fileno(in) >= 0) {
     sexp_port_fd(p) = sexp_lookup_fileno(ctx, fileno(in));
-    if (sexp_filenop(sexp_port_fd(p)))
+    if (sexp_filenop(sexp_port_fd(p))) {
       sexp_fileno_openp(sexp_port_fd(p)) = 1;
+      ++sexp_fileno_count(sexp_port_fd(p));
+    }
   }
 #endif
   sexp_port_cookie(p) = SEXP_VOID;
@@ -2737,6 +2742,10 @@ sexp sexp_read_float_tail (sexp ctx, sexp in, double whole, int negp) {
     if (c=='i' || c=='I' || c=='+' || c=='-') {
       sexp_push_char(ctx, c, in);
       res = sexp_read_complex_tail(ctx, in, res);
+#if SEXP_USE_MATH
+    } else if (c=='@') {
+      return sexp_read_polar_tail(ctx, in, res);
+#endif
     } else
 #endif
     if ((c!=EOF) && ! sexp_is_separator(c))
@@ -2792,9 +2801,12 @@ sexp sexp_ratio_normalize (sexp ctx, sexp rat, sexp in) {
 
 sexp sexp_read_number (sexp ctx, sexp in, int base, int exactp) {
   sexp_sint_t val = 0, tmp = -1;
-  int c, digit, negativep = 0;
+  int c, digit, negativep = 0, inexactp = 0;
 #if SEXP_USE_PLACEHOLDER_DIGITS
   double whole = 0.0, scale = 0.1;
+#endif
+#if SEXP_USE_COMPLEX && SEXP_USE_MATH
+  double rho, theta;
 #endif
   sexp_gc_var2(res, den);
 
@@ -2803,7 +2815,7 @@ sexp sexp_read_number (sexp ctx, sexp in, int base, int exactp) {
     switch ((c = sexp_tolower(sexp_read_char(ctx, in)))) {
       case 'b': base = 2; break;   case 'o': base = 8; break;
       case 'd': base = 10; break;  case 'x': base = 16; break;
-      case 'i': exactp = 0; break; case 'e': exactp = 1; break;
+      case 'i': inexactp = 1; break; case 'e': exactp = 1; break;
       default: return sexp_read_error(ctx, "unexpected numeric # code", sexp_make_character(c), in);
     }
     c = sexp_read_char(ctx, in);
@@ -2898,6 +2910,18 @@ sexp sexp_read_number (sexp ctx, sexp in, int base, int exactp) {
         res = sexp_make_ratio(ctx, res, sexp_complex_imag(den));
         res = sexp_ratio_normalize(ctx, res, in);
         sexp_complex_imag(den) = res;
+#if SEXP_USE_MATH
+      } else if (sexp_flonump(sexp_complex_real(den))) { /* assume polar */
+        rho = sqrt(sexp_flonum_value(sexp_complex_real(den)) *
+                   sexp_flonum_value(sexp_complex_real(den)) +
+                   sexp_to_double(ctx, sexp_complex_imag(den)) +
+                   sexp_to_double(ctx, sexp_complex_imag(den)));
+        theta = atan(sexp_to_double(ctx, sexp_complex_imag(den)) /
+                     sexp_flonum_value(sexp_complex_real(den)));
+        rho = sexp_to_double(ctx, sexp_div(ctx, res, sexp_make_fixnum((sexp_sint_t)round(rho))));
+        sexp_complex_real(den) = sexp_make_flonum(ctx, rho * cos(theta));
+        sexp_complex_imag(den) = sexp_make_flonum(ctx, rho * sin(theta));
+#endif
       } else {
         res = sexp_make_ratio(ctx, res, sexp_complex_real(den));
         res = sexp_ratio_normalize(ctx, res, in);
@@ -2917,6 +2941,8 @@ sexp sexp_read_number (sexp ctx, sexp in, int base, int exactp) {
                              / (double)sexp_unbox_fixnum(den));
 #endif
     }
+    if (inexactp)
+      res = sexp_exact_to_inexact(ctx, NULL, 2, res);
     sexp_gc_release2(ctx);
     return res;
 #if SEXP_USE_COMPLEX
@@ -2939,7 +2965,8 @@ sexp sexp_read_number (sexp ctx, sexp in, int base, int exactp) {
     sexp_push_char(ctx, c, in);
   }
 
-  return sexp_make_fixnum(negativep ? -val : val);
+  return inexactp ? sexp_make_flonum(ctx, negativep ? -val : val)
+    : sexp_make_fixnum(negativep ? -val : val);
 }
 
 #if SEXP_USE_UTF8_STRINGS

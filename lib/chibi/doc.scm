@@ -177,9 +177,11 @@
 (define (print-module-docs mod-name . o)
   (let ((out (if (pair? o) (car o) (current-output-port)))
         (render (or (and (pair? o) (pair? (cdr o)) (cadr o))
-                    sxml-display-as-text)))
+                    sxml-display-as-text))
+        (unexpanded?
+         (and (pair? o) (pair? (cdr o)) (pair? (cddr o)) (car (cddr o)))))
     (render
-     (generate-docs
+     ((if unexpanded? (lambda (sxml env) (fixup-docs sxml)) generate-docs)
       `((title ,(write-to-string mod-name))
         ,@(extract-module-docs mod-name #f))
       (make-module-doc-env mod-name))
@@ -425,7 +427,7 @@
     sxml)))
 
 (define (expand-procedure sxml env)
-  ((expand-section 'h3) `(,(car sxml) (rawcode ,@(cdr sxml))) env))
+  ((expand-section 'h4) `(,(car sxml) (rawcode ,@(cdr sxml))) env))
 
 (define (expand-macro sxml env)
   (expand-procedure sxml env))
@@ -464,52 +466,64 @@
 (define (get-contents x)
   (if (null? x)
       '()
-      (let ((d (caar x)))
-        (let lp ((ls (cdr x)) (parent (car (cdar x))) (kids '()) (res '()))
-          (define (collect)
-            (cons `(li ,parent ,(get-contents (reverse kids))) res))
-          ;; take a span of all sub-headers, recurse and repeat on next span
-          (cond
-           ((null? ls)
-            `(ol ,@(reverse (collect))))
-           ((> (caar ls) d)
-            (lp (cdr ls) parent (cons (car ls) kids) res))
-           (else
-            (lp (cdr ls) (car (cdar ls)) '() (collect))))))))
+      (let lp ((ls (cdr x))
+               (depth (caar x))
+               (parent (cadr (car x)))
+               (kids '())
+               (res '()))
+        (define (collect)
+          (cons `(li ,parent ,(get-contents (reverse kids))) res))
+        ;; take a span of all sub-headers, recurse and repeat on next span
+        (cond
+         ((null? ls)
+          `(ol ,@(reverse (collect))))
+         ((> (caar ls) depth)
+          (lp (cdr ls) depth parent (cons (car ls) kids) res))
+         (else
+          (lp (cdr ls) (caar ls) (cadr (car ls)) '() (collect)))))))
 
 (define (fix-header x)
-  `(html (head ,@(cond ((assq 'title x) => (lambda (x) (list x)))
-                       (else '()))
-               "\n"
-               (style (@ (type . "text/css"))
-                 "
-body {color: #000; background-color: #FFF}
-div#menu  {font-size: smaller; position: absolute; top: 50px; left: 0; width: 190px; height: 100%}
-div#main  {position: absolute; top: 0; left: 200px; width: 540px; height: 100%}
-div#notes {position: relative; top: 2em; left: 570px; max-width: 200px; height: 0px; font-size: smaller;}
+  `((!DOCTYPE html)
+    (html (head ,@(cond ((assq 'title x) => (lambda (x) (list x)))
+                        (else '()))
+                "\n"
+                (meta (@ (charset . "UTF-8")))
+                (style (@ (type . "text/css"))
+                  "
+body {color: #000; background-color: #FFFFF8;}
+div#menu  {font-size: smaller; position: absolute; top: 50px; left: 0; width: 250px; height: 100%}
+div#menu a:link {text-decoration: none}
+div#main  {font-size: large; position: absolute; top: 0; left: 260px; max-width: 590px; height: 100%}
+div#notes {position: relative; top: 2em; left: 620px; width: 200px; height: 0px; font-size: smaller;}
 div#footer {padding-bottom: 50px}
+div#menu ol {list-style-position:inside; padding-left: 5px; margin-left: 5px}
+div#menu ol ol {list-style: lower-alpha; padding-left: 15px; margin-left: 15px}
+div#menu ol ol ol {list-style: decimal; padding-left: 5px; margin-left: 5px}
+h2 { color: #888888; border-top: 3px solid #4588ba; }
+h3 { color: #666666; border-top: 2px solid #4588ba; }
+h4 { color: #222288; border-top: 1px solid #4588ba; }
 .result { color: #000; background-color: #FFEADF; width: 100%; padding: 3px}
 .output { color: #000; background-color: beige; width: 100%; padding: 3px}
 .error { color: #000; background-color: #F0B0B0; width: 100%; padding: 3px}
 .command { color: #000; background-color: #FFEADF; width: 100%; padding: 5px}
 "
-                 ,(highlight-style))
-               "\n")
-         (body
-          (div (@ (id . "menu"))
-               ,(let ((contents (get-contents (extract-contents x))))
-                  (match contents
-                    ;; flatten if we have only a single heading
-                    (('ol (li y sections ...))
-                     sections)
-                    (else contents))))
-          (div (@ (id . "main"))
-               ,@(map (lambda (x)
-                        (if (and (pair? x) (eq? 'title (car x)))
-                            (cons 'h1 (cdr x))
-                            x))
-                      x)
-               (div (@ (id . "footer")))))))
+                  ,(highlight-style))
+                "\n")
+          (body
+           (div (@ (id . "menu"))
+                ,(let ((contents (get-contents (extract-contents x))))
+                   (match contents
+                     ;; flatten if we have only a single heading
+                     (('ol (li y sections ...))
+                      sections)
+                     (else contents))))
+           (div (@ (id . "main"))
+                ,@(map (lambda (x)
+                         (if (and (pair? x) (eq? 'title (car x)))
+                             (cons 'h1 (cdr x))
+                             x))
+                       x)
+                (div (@ (id . "footer"))))))))
 
 (define (fix-paragraphs x)
   (let lp ((ls x) (p '()) (res '()))
@@ -735,7 +749,7 @@ div#footer {padding-bottom: 50px}
   (let ((sections '(section subsection subsubsection subsubsubsection)))
     (lambda (x)
       (cond ((memq x sections) => length)
-            ((memq x '(procedure macro)) (section-number 'subsection))
+            ((memq x '(procedure macro)) (section-number 'subsubsection))
             (else 0)))))
 
 (define (section>=? x n)
@@ -806,15 +820,16 @@ div#footer {padding-bottom: 50px}
       (let lp ((ls orig-ls) (rev-pre '()))
         (cond
          ((or (null? ls)
-              (section>=? (car ls) (section-number 'subsection)))
+              (section>=? (car ls) (section-number 'subsubsection)))
           `(,@(reverse rev-pre)
             ,@(if (and (pair? ls)
                        (section-describes?
-                        (extract-sxml '(subsection procedure macro)
-                                      (car ls))
+                        (extract-sxml
+                         '(subsubsection procedure macro)
+                         (car ls))
                         name))
                   '()
-                  `((subsection
+                  `((subsubsection
                      tag: ,(write-to-string name)
                      (rawcode
                       ,@(if (and (pair? (car sig)) (eq? 'const: (caar sig)))

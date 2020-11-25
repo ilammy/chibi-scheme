@@ -4,15 +4,21 @@
           write-to-string display-to-string
           resource->bytevector uri-normalize uri-directory
           version-split version-compare version>? version>=?
-          topological-sort)
+          topological-sort
+          known-implementations impl->version impl->features)
   (import (scheme base)
+          (scheme char)
           (scheme file)
+          (scheme lazy)
           (scheme read)
           (scheme write)
           (scheme process-context)
           (srfi 1)
+          (chibi config)
+          (chibi char-set)
           (chibi net http)
           (chibi pathname)
+          (chibi process)
           (chibi string)
           (chibi uri))
   (cond-expand

@@ -231,7 +231,7 @@ This feature is still experimental.
 .B CHIBI_MODULE_PATH
 A colon separated list of directories to search for module
 files, inserted before the system default load paths.  chibi-scheme
-searchs for modules in directories in the following order:
+searches for modules in directories in the following order:
 
 .TP
           directories included with the -I path option
@@ -243,7 +243,13 @@ searchs for modules in directories in the following order:
           directories included with -A path option
 
 If CHIBI_MODULE_PATH is unset, the directories "./lib", and "." are
-search in order.
+searched in order. Set to empty to only consider -I, system
+directories and -A.
+
+.TP
+.B CHIBI_IGNORE_SYSTEM_PATH
+If set to anything but "0", system directories (as listed above) are
+not included in the search paths.
 
 .SH AUTHORS
 .PP

@@ -1,6 +1,6 @@
 # -*- makefile-gmake -*-
 
-.PHONY: dist mips-dist cleaner test test-all test-dist checkdefs debian snowballs init-dev
+.PHONY: dist mips-dist cleaner distclean dist-clean test test-all test-dist checkdefs debian snowballs init-dev
 .DEFAULT_GOAL := all
 
 CHIBI_VERSION ?= $(shell cat VERSION)
@@ -11,7 +11,7 @@ CHIBI_FFI ?= $(CHIBI) -q tools/chibi-ffi
 CHIBI_FFI_DEPENDENCIES ?= $(CHIBI_DEPENDENCIES) tools/chibi-ffi
 
 CHIBI_DOC ?= $(CHIBI) tools/chibi-doc
-CHIBI_DOC_DEPENDENCIES ?= $(CHIBI_DEPENDENCIES) tools/chibi-doc
+CHIBI_DOC_DEPENDENCIES ?= $(CHIBI_DEPENDENCIES) tools/chibi-doc $(COMPILED_LIBS)
 
 GENSTATIC ?= ./tools/chibi-genstatic
 
@@ -50,8 +50,9 @@ MODULE_DOCS := app ast base64 bytevector config crypto/md5 crypto/rsa \
 	crypto/sha2 diff disasm doc edit-distance equiv filesystem generic \
 	heap-stats io iset/base iset/constructors iset/iterators json loop \
 	match math/prime memoize mime modules net net/http-server net/servlet \
-	parse pathname process repl scribble string stty sxml system temp-file \
-	test time trace type-inference uri weak monad/environment crypto/sha2
+	optional parse pathname process repl scribble string stty sxml system \
+	temp-file test time trace type-inference uri weak monad/environment \
+	crypto/sha2
 
 IMAGE_FILES = lib/chibi.img lib/red.img lib/snow.img
 
@@ -82,11 +83,11 @@ chibi-scheme-static.bc:
 	emmake $(MAKE) PLATFORM=emscripten CHIBI_DEPENDENCIES= CHIBI=./chibi-scheme-emscripten PREFIX= CFLAGS=-O2 SEXP_USE_DL=0 EXE=.bc SO=.bc CPPFLAGS="-DSEXP_USE_STRICT_TOPLEVEL_BINDINGS=1 -DSEXP_USE_ALIGNED_BYTECODE=1 -DSEXP_USE_STATIC_LIBS=1 -DSEXP_USE_STATIC_LIBS_NO_INCLUDE=0" clibs.c chibi-scheme-static.bc
 
 chibi-scheme-emscripten: VERSION
-	$(MAKE) dist-clean
+	$(MAKE) distclean
 	$(MAKE) chibi-scheme-static PLATFORM=emscripten SEXP_USE_DL=0
 	(tempfile="`mktemp -t chibi.XXXXXX`" && \
 	mv chibi-scheme-static$(EXE) "$$tempfile" && \
-	$(MAKE) dist-clean; \
+	$(MAKE) distclean; \
 	mv "$$tempfile" chibi-scheme-emscripten)
 
 include/chibi/install.h: Makefile
@@ -131,10 +132,10 @@ chibi-scheme$(EXE): main.o libchibi-scheme$(SO)
 	$(CC) $(XCPPFLAGS) $(XCFLAGS) $(LDFLAGS) -o $@ $< -L. $(RLDFLAGS) -lchibi-scheme
 
 chibi-scheme-static$(EXE): main.o $(SEXP_OBJS) $(EVAL_OBJS)
-	$(CC) $(XCFLAGS) $(STATICFLAGS) -o $@ $^ $(LDFLAGS) $(GCLDFLAGS) -lm -ldl -lutil
+	$(CC) $(XCFLAGS) $(STATICFLAGS) -o $@ $^ $(LDFLAGS) $(GCLDFLAGS) $(STATIC_LDFLAGS)
 
 chibi-scheme-ulimit$(EXE): main.o $(SEXP_ULIMIT_OBJS) $(EVAL_OBJS)
-	$(CC) $(XCFLAGS) $(STATICFLAGS) -o $@ $^ $(LDFLAGS) $(GCLDFLAGS) -lm -ldl -lutil
+	$(CC) $(XCFLAGS) $(STATICFLAGS) -o $@ $^ $(LDFLAGS) $(GCLDFLAGS) $(STATIC_LDFLAGS)
 
 clibs.c: $(GENSTATIC) $(CHIBI_DEPENDENCIES) $(COMPILED_LIBS:%$(SO)=%.c)
 	$(GIT) ls-files lib | $(GREP) .sld | $(CHIBI) -q $(GENSTATIC) > $@
@@ -290,7 +291,8 @@ cleaner: clean
 	    js/chibi.* \
 	    $(shell $(FIND) lib -name \*.o)
 
-dist-clean: dist-clean-libs cleaner
+distclean: dist-clean-libs cleaner
+dist-clean: distclean
 
 install-base: all
 	$(MKDIR) $(DESTDIR)$(BINDIR)
@@ -392,9 +394,9 @@ install-base: all
 install: install-base
 ifneq "$(IMAGE_FILES)" ""
 	echo "Generating images"
-	-cd / && LD_LIBRARY_PATH="$(DESTDIR)$(SOLIBDIR):$(LD_LIBRARY_PATH)" DYLD_LIBRARY_PATH="$(DESTDIR)$(SOLIBDIR):$(DYLD_LIBRARY_PATH)" CHIBI_MODULE_PATH="$(DESTDIR)$(MODDIR):$(DESTDIR)$(BINMODDIR)" $(DESTDIR)$(BINDIR)/chibi-scheme$(EXE) -d $(DESTDIR)$(MODDIR)/chibi.img
-	-cd / && LD_LIBRARY_PATH="$(DESTDIR)$(SOLIBDIR):$(LD_LIBRARY_PATH)" DYLD_LIBRARY_PATH="$(DESTDIR)$(SOLIBDIR):$(DYLD_LIBRARY_PATH)" CHIBI_MODULE_PATH="$(DESTDIR)$(MODDIR):$(DESTDIR)$(BINMODDIR)" $(DESTDIR)$(BINDIR)/chibi-scheme$(EXE) -xscheme.red -d $(DESTDIR)$(MODDIR)/red.img
-	-cd / && LD_LIBRARY_PATH="$(DESTDIR)$(SOLIBDIR):$(LD_LIBRARY_PATH)" DYLD_LIBRARY_PATH="$(DESTDIR)$(SOLIBDIR):$(DYLD_LIBRARY_PATH)" CHIBI_MODULE_PATH="$(DESTDIR)$(MODDIR):$(DESTDIR)$(BINMODDIR)" $(DESTDIR)$(BINDIR)/chibi-scheme$(EXE) -mchibi.snow.commands -mchibi.snow.interface -mchibi.snow.package -mchibi.snow.utils -d $(DESTDIR)$(MODDIR)/snow.img
+	-LD_LIBRARY_PATH="$(DESTDIR)$(SOLIBDIR):$(LD_LIBRARY_PATH)" DYLD_LIBRARY_PATH="$(DESTDIR)$(SOLIBDIR):$(DYLD_LIBRARY_PATH)" CHIBI_MODULE_PATH="$(DESTDIR)$(MODDIR):$(DESTDIR)$(BINMODDIR)" $(DESTDIR)$(BINDIR)/chibi-scheme$(EXE) -mchibi.repl -d $(DESTDIR)$(MODDIR)/chibi.img
+	-LD_LIBRARY_PATH="$(DESTDIR)$(SOLIBDIR):$(LD_LIBRARY_PATH)" DYLD_LIBRARY_PATH="$(DESTDIR)$(SOLIBDIR):$(DYLD_LIBRARY_PATH)" CHIBI_MODULE_PATH="$(DESTDIR)$(MODDIR):$(DESTDIR)$(BINMODDIR)" $(DESTDIR)$(BINDIR)/chibi-scheme$(EXE) -xscheme.red -mchibi.repl -d $(DESTDIR)$(MODDIR)/red.img
+	-LD_LIBRARY_PATH="$(DESTDIR)$(SOLIBDIR):$(LD_LIBRARY_PATH)" DYLD_LIBRARY_PATH="$(DESTDIR)$(SOLIBDIR):$(DYLD_LIBRARY_PATH)" CHIBI_MODULE_PATH="$(DESTDIR)$(MODDIR):$(DESTDIR)$(BINMODDIR)" $(DESTDIR)$(BINDIR)/chibi-scheme$(EXE) -mchibi.snow.commands -mchibi.snow.interface -mchibi.snow.package -mchibi.snow.utils -d $(DESTDIR)$(MODDIR)/snow.img
 endif
 
 uninstall:
@@ -466,14 +468,14 @@ uninstall:
 	-$(RM) $(DESTDIR)$(MANDIR)/chibi-scheme.1 $(DESTDIR)$(MANDIR)/chibi-ffi.1 $(DESTDIR)$(MANDIR)/chibi-doc.1
 	-$(RM) $(DESTDIR)$(PKGCONFDIR)/chibi-scheme.pc
 
-dist: dist-clean
+dist: distclean
 	$(RM) chibi-scheme-$(CHIBI_VERSION).tgz
 	$(MKDIR) chibi-scheme-$(CHIBI_VERSION)
 	@for f in `git ls-files | grep -v ^benchmarks/`; do $(MKDIR) chibi-scheme-$(CHIBI_VERSION)/`dirname $$f`; $(SYMLINK) `pwd`/$$f chibi-scheme-$(CHIBI_VERSION)/$$f; done
 	$(TAR) cphzvf chibi-scheme-$(CHIBI_VERSION).tgz chibi-scheme-$(CHIBI_VERSION)
 	$(RM) -r chibi-scheme-$(CHIBI_VERSION)
 
-mips-dist: dist-clean
+mips-dist: distclean
 	$(RM) chibi-scheme-`date +%Y%m%d`-`git log HEAD^..HEAD | head -1 | cut -c8-`.tgz
 	$(MKDIR) chibi-scheme-`date +%Y%m%d`-`git log HEAD^..HEAD | head -1 | cut -c8-`
 	@for f in `git ls-files | grep -v ^benchmarks/`; do $(MKDIR) chibi-scheme-`date +%Y%m%d`-`git log HEAD^..HEAD | head -1 | cut -c8-`/`dirname $$f`; $(SYMLINK) `pwd`/$$f chibi-scheme-`date +%Y%m%d`-`git log HEAD^..HEAD | head -1 | cut -c8-`/$$f; done

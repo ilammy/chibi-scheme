@@ -3,31 +3,10 @@
 ;; This code was written by Alex Shinn in 2014 and placed in the
 ;; Public Domain.  All warranties are disclaimed.
 
-(define known-implementations
-  '((chibi "chibi-scheme" (chibi-scheme -V) "0.7.3")
-    (chicken "chicken" (csi -release) "4.9.0")
-    (cyclone "cyclone" (icyc -vn) "0.5.3")
-    (foment "foment")
-    (gauche "gosh" (gosh -E "print (gauche-version)" -E exit) "0.9.4")
-    (kawa "kawa" (kawa --version) "2.0")
-    (larceny "larceny" (larceny --version) "v0.98")
-    (sagittarius "sagittarius")))
-
-(define (impl->version impl cmd)
-  (let* ((lines (process->string-list cmd))
-         (line (and (pair? lines) (string-split (car lines)))))
-    (and (pair? line)
-         (if (and (pair? (cdr line))
-                  (let ((x (string-downcase (car line)))
-                        (name (symbol->string impl)))
-                    (or (equal? x name)
-                        (equal? x (string-append name "-scheme")))))
-             (cadr line)
-             (car line)))))
-
 (define (impl-available? cfg spec confirm?)
   (if (find-in-path (cadr spec))
       (or (null? (cddr spec))
+          (not (third spec))
           (conf-get cfg 'skip-version-checks?)
           (let ((version (impl->version (car spec) (third spec))))
             (or (and version (version>=? version (fourth spec)))
@@ -968,9 +947,12 @@
    ((package-file? (car o))
     (if (not (every package-file? (cdr o)))
         (non-homogeneous))
-    (for-each
-     (lambda (package) (upload-package cfg spec package))
-     o))
+    ;; TODO: include a summary (version, file size, etc.)
+    (if (yes-or-no? cfg "Upload " o " to "
+                    (remote-uri cfg '(command package uri) "/?"))
+      (for-each
+       (lambda (package) (upload-package cfg spec package))
+       o)))
    (else
     (if (any package-file? (cdr o))
         (non-homogeneous))
@@ -979,7 +961,10 @@
            (package (create-package (car spec+files)
                                     (cdr spec+files)
                                     package-file)))
-      (upload-package cfg spec package package-file)))))
+      ;; TODO: include a summary (version, file size, etc.)
+      (if (yes-or-no? cfg "Upload " o " to "
+                      (remote-uri cfg '(command package uri) "/?"))
+        (upload-package cfg spec package package-file))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Remove - removes the listed libraries.
@@ -1168,7 +1153,7 @@
          (local-tmp (string-append local-path ".tmp."
                                    (number->string (current-second)) "-"
                                    (number->string (current-process-id))))
-         (repo-str (utf8->string (resource->bytevector repo-uri)))
+         (repo-str (utf8->string (resource->bytevector cfg repo-uri)))
          (repo (guard (exn (else #f))
                  (let ((repo (read (open-input-string repo-str))))
                    `(,(car repo) (url ,repo-uri) ,@(cdr repo))))))
@@ -1580,7 +1565,9 @@
           ((and (equal? "meta" (path-extension file))
                 (guard (exn (else #f))
                   (let ((pkg (call-with-input-file file read)))
-                    (and (package? pkg) pkg))))
+                    (and (package? pkg)
+                         (every file-exists? (package-installed-files pkg))
+                         pkg))))
            => (lambda (pkg)
                 (append
                  (map
@@ -2128,7 +2115,7 @@
     (install-file cfg (make-path dir src) dest)))
 
 (define (fetch-package cfg url)
-  (resource->bytevector url))
+  (resource->bytevector cfg url))
 
 (define (path-strip-top file)
   (let ((pos (string-find file #\/)))

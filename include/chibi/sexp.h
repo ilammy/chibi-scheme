@@ -82,6 +82,12 @@ typedef long long off_t;
 #define exit(x)           exits(TOSTRING(x))
 #define fabsl          fabs
 #define M_LN10         2.30258509299404568402  /* log_e 10 */
+#define FLT_RADIX 2
+#define isfinite(x) !(isNaN(x) || isInf(x,0))
+typedef u32int uint32_t;
+typedef s32int int32_t;
+typedef u64int uint64_t;
+typedef s64int int64_t;
 #else
 #include <stddef.h>
 #include <stdlib.h>
@@ -568,7 +574,7 @@ struct sexp_struct {
       unsigned char* ip;
       struct timeval tval;
 #endif
-      char tailp, tracep, timeoutp, waitp, errorp;
+      char tailp, tracep, timeoutp, waitp, errorp, interruptp;
       sexp_uint_t last_fp;
       sexp_uint_t gc_count;
 #if SEXP_USE_TIME_GC
@@ -1373,6 +1379,7 @@ enum sexp_uniform_vector_type {
 
 #define sexp_context_result(x)   (sexp_field(x, context, SEXP_CONTEXT, result))
 #define sexp_context_errorp(x)   (sexp_field(x, context, SEXP_CONTEXT, errorp))
+#define sexp_context_interruptp(x) (sexp_field(x, context, SEXP_CONTEXT, interruptp))
 
 /* during compilation, sexp_context_specific is set to a vector */
 /* containing the following elements: */
@@ -1509,6 +1516,7 @@ enum sexp_context_globals {
   SEXP_G_OOM_ERROR,             /* out of memory exception object */
   SEXP_G_OOS_ERROR,             /* out of stack exception object */
   SEXP_G_ABI_ERROR,             /* incompatible ABI loading library */
+  SEXP_G_INTERRUPT_ERROR,       /* C-c in the repl */
   SEXP_G_OPTIMIZATIONS,
   SEXP_G_SIGNAL_HANDLERS,
   SEXP_G_META_ENV,
