@@ -1,3 +1,9 @@
+chibi-scheme (0.9.1-3) unstable; urgency=medium
+
+  * Adjust debian/rules to upstream Makefile API change
+
+ -- Barak A. Pearlmutter <bap@debian.org>  Wed, 25 Nov 2020 20:10:04 +0000
+
 chibi-scheme (0.9.1-2) unstable; urgency=medium
 
   * Update renamed lintian tag names in lintian overrides.
