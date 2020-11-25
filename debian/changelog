@@ -1,9 +1,12 @@
-chibi-scheme (0.9.1-2) UNRELEASED; urgency=medium
+chibi-scheme (0.9.1-2) unstable; urgency=medium
 
   * Update renamed lintian tag names in lintian overrides.
   * Bump policy
+  * Track upstream changes including bug fix for library symbols missing
+    on 32-bit architectures (closes: #972956)
+  * Forward port patches (one spelling correct merged upstream)
 
- -- Barak A. Pearlmutter <bap@debian.org>  Wed, 25 Nov 2020 16:25:25 +0000
+ -- Barak A. Pearlmutter <bap@debian.org>  Wed, 25 Nov 2020 16:33:43 +0000
 
 chibi-scheme (0.9.1-1) unstable; urgency=medium
 
