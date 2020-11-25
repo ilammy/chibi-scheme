@@ -3,4 +3,4 @@
 libchibi-scheme-ffi binary: library-not-linked-against-libc usr/lib/*/chibi/chibi/optimize/profile.so
 # This shared library *really* does not link against anything and does
 # not use any symbols from libc or whatever other library:
-libchibi-scheme-ffi binary: shared-lib-without-dependency-information usr/lib/*/chibi/chibi/emscripten.so
+libchibi-scheme-ffi binary: shared-library-lacks-prerequisites usr/lib/*/chibi/chibi/emscripten.so

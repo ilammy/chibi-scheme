@@ -1,3 +1,9 @@
+chibi-scheme (0.9.1-2) UNRELEASED; urgency=medium
+
+  * Update renamed lintian tag names in lintian overrides.
+
+ -- Barak A. Pearlmutter <bap@debian.org>  Wed, 25 Nov 2020 16:24:08 -0000
+
 chibi-scheme (0.9.1-1) unstable; urgency=medium
 
   * Initial Debian release. (Closes: #928753)
