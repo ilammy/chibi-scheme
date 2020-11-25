@@ -12,10 +12,10 @@ This is not acceptable and we should use a different directory.
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/lib/chibi/snow/commands.scm b/lib/chibi/snow/commands.scm
-index f68ffc2..0917d76 100644
+index 28877ea..317a677 100644
 --- a/lib/chibi/snow/commands.scm
 +++ b/lib/chibi/snow/commands.scm
-@@ -1151,7 +1151,7 @@
+@@ -1136,7 +1136,7 @@
    (cond
     ((zero? (current-user-id))
      (or (conf-get cfg 'local-root-repository)

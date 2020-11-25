@@ -3,23 +3,9 @@ Date: Sat, 5 Sep 2020 15:01:48 +0100
 Subject: spelling
 
 ---
- doc/chibi-scheme.1     | 2 +-
  lib/srfi/166/write.scm | 2 +-
- 2 files changed, 2 insertions(+), 2 deletions(-)
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/doc/chibi-scheme.1 b/doc/chibi-scheme.1
-index 1664a18..80dcd1f 100644
---- a/doc/chibi-scheme.1
-+++ b/doc/chibi-scheme.1
-@@ -231,7 +231,7 @@ This feature is still experimental.
- .B CHIBI_MODULE_PATH
- A colon separated list of directories to search for module
- files, inserted before the system default load paths.  chibi-scheme
--searchs for modules in directories in the following order:
-+searches for modules in directories in the following order:
- 
- .TP
-           directories included with the -I path option
 diff --git a/lib/srfi/166/write.scm b/lib/srfi/166/write.scm
 index 7c58eae..2edb867 100644
 --- a/lib/srfi/166/write.scm
