@@ -26,6 +26,7 @@ Description: embeddable Scheme interpreter
 Package: chibi-scheme-doc
 Section: doc
 Architecture: all
+Multi-Arch: foreign
 Depends: ${misc:Depends}
 Recommends: chibi-scheme
 Description: embeddable Scheme interpreter (documentation)
@@ -37,6 +38,7 @@ Description: embeddable Scheme interpreter (documentation)
 
 Package: chibi-scheme-common
 Architecture: all
+Multi-Arch: foreign
 Depends: libchibi-scheme-ffi (>= 0.9.1), ${misc:Depends}
 Description: embeddable Scheme interpreter (standard libraries)
  Chibi-Scheme is a really small embeddable interpreter of R7RS Scheme,
@@ -58,6 +60,7 @@ Description: embeddable Scheme interpreter (standard library images)
 Package: libchibi-scheme0
 Section: libs
 Architecture: any
+Multi-Arch: same
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: embeddable Scheme interpreter (shared library)
  Chibi-Scheme is a really small embeddable interpreter of R7RS Scheme,
@@ -69,6 +72,7 @@ Description: embeddable Scheme interpreter (shared library)
 Package: libchibi-scheme-dev
 Section: libdevel
 Architecture: any
+Multi-Arch: same
 Depends: libchibi-scheme0 (= ${binary:Version}), ${misc:Depends}
 Suggests: chibi-scheme-doc
 Description: embeddable Scheme interpreter (development files)
@@ -82,6 +86,7 @@ Description: embeddable Scheme interpreter (development files)
 Package: libchibi-scheme-ffi
 Section: libs
 Architecture: any
+Multi-Arch: same
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Recommends: chibi-scheme-common
 Description: embeddable Scheme interpreter (native modules)
