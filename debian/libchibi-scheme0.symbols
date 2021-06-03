@@ -74,6 +74,7 @@ libchibi-scheme.so.0 libchibi-scheme0 #MINVER#
  sexp_complex_sub@Base 0.8.0
  sexp_complex_tan@Base 0.8.0
  sexp_cons_op@Base 0.8.0
+ (arch=armel armhf sparc sparc64 mipsel mips64)sexp_context_align_pos@Base 0.8.0
  sexp_copy_bignum@Base 0.8.0
  sexp_copy_list_op@Base 0.8.0
  sexp_cos@Base 0.8.0
@@ -126,9 +127,9 @@ libchibi-scheme.so.0 libchibi-scheme0 #MINVER#
  sexp_free_heap@Base 0.8.0
  sexp_free_vars@Base 0.8.0
  sexp_gc@Base 0.8.0
- sexp_gc_heap_pack@Base 0.8.0
-#sexp_gc_heap_stats_print@Base 0.8.0 # removed in 0.9.0
- sexp_gc_heap_walk@Base 0.8.0
+ (arch-bits=64)sexp_gc_heap_pack@Base 0.8.0
+#(arch-bits=64)sexp_gc_heap_stats_print@Base 0.8.0 # removed in 0.9.0
+ (arch-bits=64)sexp_gc_heap_walk@Base 0.8.0
  sexp_gc_init@Base 0.8.0
  sexp_generate@Base 0.8.0
  sexp_generate_op@Base 0.8.0
@@ -154,8 +155,8 @@ libchibi-scheme.so.0 libchibi-scheme0 #MINVER#
  sexp_list_to_uvector_op@Base 0.9.0
  sexp_list_to_vector_op@Base 0.8.0
  sexp_listp_op@Base 0.8.0
- sexp_load_image@Base 0.8.0
- sexp_load_image_err@Base 0.8.0
+ (arch-bits=64)sexp_load_image@Base 0.8.0
+ (arch-bits=64)sexp_load_image_err@Base 0.8.0
  sexp_load_module_file@Base 0.8.0
  sexp_load_module_file_op@Base 0.8.0
  sexp_load_op@Base 0.8.0
@@ -269,7 +270,7 @@ libchibi-scheme.so.0 libchibi-scheme0 #MINVER#
  sexp_rest_unused_p@Base 0.8.0
  sexp_reverse_op@Base 0.8.0
  sexp_round@Base 0.8.0
- sexp_save_image@Base 0.8.0
+ (arch-bits=64)sexp_save_image@Base 0.8.0
  sexp_scheme_init@Base 0.8.0
  sexp_set_current_environment@Base 0.8.0
  sexp_set_parameter@Base 0.8.0
