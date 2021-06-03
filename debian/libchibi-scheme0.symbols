@@ -39,6 +39,8 @@ libchibi-scheme.so.0 libchibi-scheme0 #MINVER#
  sexp_bignum_sub@Base 0.8.0
  sexp_bignum_sub_digits@Base 0.8.0
  sexp_bignum_to_double@Base 0.8.0
+ (arch-bits=32)sexp_bignum_to_sint@Base 0.9.0
+ (arch-bits=32)sexp_bignum_to_uint@Base 0.9.0
  sexp_bignum_zerop@Base 0.8.0
  sexp_bootstrap_context@Base 0.8.0
  sexp_buffered_flush@Base 0.8.0
