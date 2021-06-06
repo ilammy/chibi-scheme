@@ -1,0 +1,39 @@
+From: Alexei Lozovsky <me@ilammy.net>
+Date: Sun, 6 Jun 2021 10:48:23 +0900
+Subject: Initialize variables in FFI tests
+
+(cherry picked from commit cc23efac16c0cd248c0a359e48de4103df733004)
+
+(submitted upstream, not yet released)
+
+Resolves more test suite failures on some architectures (mostly those
+that are not x86_64).
+---
+ tests/ffi/ffi-tests.scm | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/tests/ffi/ffi-tests.scm b/tests/ffi/ffi-tests.scm
+index acacb963..91c8dd74 100644
+--- a/tests/ffi/ffi-tests.scm
++++ b/tests/ffi/ffi-tests.scm
+@@ -303,7 +303,7 @@ double circle_area2(struct Circle circ) {
+ 
+ struct Point* centroid(struct Point** points, int num_points) {
+   struct Point* res;
+-  double xsum, ysum;
++  double xsum=0, ysum=0;
+   int i;
+   for (i=0; i<num_points; ++i) {
+     xsum += points[i]->x;
+@@ -317,7 +317,7 @@ struct Point* centroid(struct Point** points, int num_points) {
+ 
+ struct Point* centroid_null(struct Point** points) {
+   struct Point* res;
+-  double xsum, ysum;
++  double xsum=0, ysum=0;
+   int i;
+   for (i=0; points[i]; ++i) {
+     xsum += points[i]->x;
+-- 
+2.25.1
+
