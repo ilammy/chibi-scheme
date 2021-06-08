@@ -1,8 +1,6 @@
 From: Alexei Lozovsky <me@ilammy.net>
 Date: Fri, 4 Sep 2020 21:49:12 +0100
-Subject: hide-extra-symbols
-
-Hide unnecessarily exported symbols
+Subject: Hide unnecessarily exported symbols
 
 Chibi libraries (accidentally) make some internal symbols public.
 We don't want this and need to hide them.
@@ -14,14 +12,17 @@ mark them with __attribute__((visibility("hidden"))) so that
 they are hidden from shared library exports, but are visible
 when linking static libraries.
 
-All public symbols are prefixed with "sexp_*".
+There are also some symbols in "vm.c" that should not be public
+but they are. Hide them since they are not a part of API exported
+via <chibi/sexp.h>
 ---
  include/chibi/sexp-hufftabs.c | 3 +++
  include/chibi/sexp-hufftabs.h | 3 +++
- 2 files changed, 6 insertions(+)
+ vm.c                          | 4 ++--
+ 3 files changed, 8 insertions(+), 2 deletions(-)
 
 diff --git a/include/chibi/sexp-hufftabs.c b/include/chibi/sexp-hufftabs.c
-index 7704184..2da963e 100644
+index 7704184f..2da963ee 100644
 --- a/include/chibi/sexp-hufftabs.c
 +++ b/include/chibi/sexp-hufftabs.c
 @@ -1,5 +1,7 @@
@@ -38,7 +39,7 @@ index 7704184..2da963e 100644
  
 +#pragma GCC visibility pop
 diff --git a/include/chibi/sexp-hufftabs.h b/include/chibi/sexp-hufftabs.h
-index 7704184..2da963e 100644
+index 7704184f..2da963ee 100644
 --- a/include/chibi/sexp-hufftabs.h
 +++ b/include/chibi/sexp-hufftabs.h
 @@ -1,5 +1,7 @@
@@ -54,3 +55,28 @@ index 7704184..2da963e 100644
  };
  
 +#pragma GCC visibility pop
+diff --git a/vm.c b/vm.c
+index 4ce48e1b..80ec085c 100644
+--- a/vm.c
++++ b/vm.c
+@@ -41,7 +41,7 @@ static sexp sexp_lookup_source_info (sexp src, int ip) {
+ }
+ #endif
+ 
+-sexp sexp_get_stack_trace (sexp ctx) {
++static sexp sexp_get_stack_trace (sexp ctx) {
+   sexp_sint_t i, fp=sexp_context_last_fp(ctx);
+   sexp self, bc, src, *stack = sexp_stack_data(sexp_context_stack(ctx));
+   sexp_gc_var2(res, cell);
+@@ -65,7 +65,7 @@ sexp sexp_get_stack_trace (sexp ctx) {
+   return res;
+ }
+ 
+-void sexp_print_extracted_stack_trace (sexp ctx, sexp trace, sexp out) {
++static void sexp_print_extracted_stack_trace (sexp ctx, sexp trace, sexp out) {
+   sexp self, bc, src, ls;
+   if (! sexp_oportp(out))
+     out = sexp_current_error_port(ctx);
+-- 
+2.25.1
+
