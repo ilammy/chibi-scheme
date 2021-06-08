@@ -230,7 +230,7 @@ module \scheme{(foo bar baz)} is searched for in the file
 installed directories, \scheme{"."} and \scheme{"./lib"}.  Additional
 directories can be specified with the command-line options \ccode{-I}
 and \ccode{-A} (see the command-line options below) or with the
-\scheme{add-modue-directory} procedure at runtime.  You can search for
+\scheme{add-module-directory} procedure at runtime.  You can search for
 a module file with \scheme{(find-module-file <file>)}, or load it with
 \scheme{(load-module-file <file> <env>)}.
 
@@ -1283,6 +1283,7 @@ snow-fort):
 \item{\hyperlink["http://srfi.schemers.org/srfi-160/srfi-160.html"]{(srfi 160) - homogeneous numeric vector libraries}}
 \item{\hyperlink["http://srfi.schemers.org/srfi-165/srfi-165.html"]{(srfi 165) - the environment Monad}}
 \item{\hyperlink["http://srfi.schemers.org/srfi-166/srfi-166.html"]{(srfi 166) - monadic formatting}}
+\item{\hyperlink["http://srfi.schemers.org/srfi-179/srfi-179.html"]{(srfi 179) - nonempty intervals and generalized arrays}}
 \item{\hyperlink["http://srfi.schemers.org/srfi-188/srfi-188.html"]{(srfi 188) - splicing binding constructs for syntactic keywords}}
 
 ]
@@ -1295,6 +1296,8 @@ namespace.
 \item{\hyperlink["lib/chibi/app.html"]{(chibi app) - Unified option parsing and config}}
 
 \item{\hyperlink["lib/chibi/ast.html"]{(chibi ast) - Abstract Syntax Tree and other internal data types}}
+
+\item{\hyperlink["lib/chibi/assert.html"]{(chibi assert) - A nicer assert macro}}
 
 \item{\hyperlink["lib/chibi/base64.html"]{(chibi base64) - Base64 encoding and decoding}}
 

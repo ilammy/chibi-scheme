@@ -231,9 +231,15 @@ typedef int sexp_sint_t;
 #define sexp_heap_align(n) sexp_align(n, 5)
 #define sexp_heap_chunks(n) (sexp_heap_align(n)>>5)
 #elif SEXP_64_BIT
+#if PLAN9
+typedef uintptr sexp_tag_t;
+typedef uintptr sexp_uint_t;
+typedef intptr sexp_sint_t;
+#else
 typedef unsigned int sexp_tag_t;
 typedef unsigned long sexp_uint_t;
 typedef long sexp_sint_t;
+#endif
 #define SEXP_PRIdFIXNUM "ld"
 #define sexp_heap_align(n) sexp_align(n, 5)
 #define sexp_heap_chunks(n) (sexp_heap_align(n)>>5)
@@ -244,6 +250,13 @@ typedef int sexp_sint_t;
 #define SEXP_PRIdFIXNUM "d"
 #define sexp_heap_align(n) sexp_align(n, 5)
 #define sexp_heap_chunks(n) (sexp_heap_align(n)>>5)
+#elif PLAN9
+typedef uintptr sexp_tag_t;
+typedef unsigned int sexp_uint_t;
+typedef int sexp_sint_t;
+#define SEXP_PRIdFIXNUM "d"
+#define sexp_heap_align(n) sexp_align(n, 4)
+#define sexp_heap_chunks(n) (sexp_heap_align(n)>>4)
 #else
 typedef unsigned short sexp_tag_t;
 typedef unsigned int sexp_uint_t;
@@ -260,7 +273,11 @@ typedef int sexp_sint_t;
 
 
 #ifdef SEXP_USE_INTTYPES
+#ifdef PLAN9
+#include <ape/stdint.h>
+#else
 #include <stdint.h>
+#endif
 # ifdef UINT8_MAX
 #  define SEXP_UINT8_DEFINED 1
 typedef uint8_t  sexp_uint8_t;
@@ -276,7 +293,11 @@ typedef int32_t sexp_int32_t;
 # else
 # include <limits.h>
 # if SEXP_USE_UNIFORM_VECTOR_LITERALS
+# ifdef PLAN9
+# include <ape/stdint.h>
+# else
 # include <stdint.h>
+# endif
 # endif
 # endif
 # if UCHAR_MAX == 255
@@ -484,7 +505,7 @@ struct sexp_struct {
       sexp_sint_t fd, count;
     } fileno;
     struct {
-      sexp kind, message, irritants, procedure, source;
+      sexp kind, message, irritants, procedure, source, stack_trace;
     } exception;
     struct {
       signed char sign;
@@ -1223,6 +1244,7 @@ enum sexp_uniform_vector_type {
 #define sexp_exception_irritants(x) (sexp_field(x, exception, SEXP_EXCEPTION, irritants))
 #define sexp_exception_procedure(x) (sexp_field(x, exception, SEXP_EXCEPTION, procedure))
 #define sexp_exception_source(x)    (sexp_field(x, exception, SEXP_EXCEPTION, source))
+#define sexp_exception_stack_trace(x) (sexp_field(x, exception, SEXP_EXCEPTION, stack_trace))
 
 #define sexp_trampolinep(x) (sexp_exceptionp(x) && sexp_exception_kind(x) == SEXP_TRAMPOLINE)
 #define sexp_trampoline_procedure(x) sexp_exception_procedure(x)
@@ -1728,12 +1750,14 @@ SEXP_API sexp sexp_open_output_string_op (sexp ctx, sexp self, sexp_sint_t n);
 SEXP_API sexp sexp_get_output_string_op (sexp ctx, sexp self, sexp_sint_t n, sexp port);
 SEXP_API sexp sexp_make_exception (sexp ctx, sexp kind, sexp message, sexp irritants, sexp procedure, sexp source);
 SEXP_API sexp sexp_user_exception (sexp ctx, sexp self, const char *msg, sexp x);
+SEXP_API sexp sexp_user_exception_ls (sexp ctx, sexp self, const char *msg, int n, ...);
 SEXP_API sexp sexp_file_exception (sexp ctx, sexp self, const char *msg, sexp x);
 SEXP_API sexp sexp_type_exception (sexp ctx, sexp self, sexp_uint_t type_id, sexp x);
 SEXP_API sexp sexp_xtype_exception (sexp ctx, sexp self, const char *msg, sexp x);
 SEXP_API sexp sexp_range_exception (sexp ctx, sexp obj, sexp start, sexp end);
 SEXP_API sexp sexp_print_exception_op (sexp ctx, sexp self, sexp_sint_t n, sexp exn, sexp out);
 SEXP_API sexp sexp_stack_trace_op (sexp ctx, sexp self, sexp_sint_t n, sexp out);
+SEXP_API sexp sexp_print_exception_stack_trace_op (sexp ctx, sexp self, sexp_sint_t n, sexp exn, sexp out);
 SEXP_API sexp sexp_apply (sexp context, sexp proc, sexp args);
 SEXP_API sexp sexp_apply1 (sexp ctx, sexp f, sexp x);
 SEXP_API sexp sexp_apply2 (sexp ctx, sexp f, sexp x, sexp y);
@@ -1868,6 +1892,7 @@ SEXP_API int sexp_poll_port(sexp ctx, sexp port, int inputp);
 #define sexp_read(ctx, in) sexp_read_op(ctx, NULL, 1, in)
 #define sexp_write(ctx, obj, out) sexp_write_op(ctx, NULL, 2, obj, out)
 #define sexp_print_exception(ctx, e, out) sexp_print_exception_op(ctx, NULL, 2, e, out)
+#define sexp_print_exception_stack_trace(ctx, e, out) sexp_print_exception_stack_trace_op(ctx, NULL, 2, e, out)
 #define sexp_flush_output(ctx, out) sexp_flush_output_op(ctx, NULL, 1, out)
 #define sexp_equalp(ctx, a, b) sexp_equalp_op(ctx, NULL, 2, a, b)
 #define sexp_listp(ctx, x) sexp_listp_op(ctx, NULL, 1, x)

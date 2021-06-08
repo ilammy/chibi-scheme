@@ -9,7 +9,8 @@
 #include "chibi/eval.h"
 #include "chibi/gc_heap.h"
 
-#define sexp_argv_symbol "command-line"
+#define sexp_command_line_symbol "command-line"
+#define sexp_raw_script_file_symbol "raw-script-file"
 
 #define sexp_import_prefix "(import ("
 #define sexp_import_suffix "))"
@@ -58,6 +59,9 @@ void sexp_usage(int err) {
 #if SEXP_USE_IMAGE_LOADING
          "  -d <file>    - dump an image file and exit\n"
          "  -i <file>    - load an image file\n"
+#endif
+#if SEXP_USE_GREEN_THREADS
+         "  -b           - Make stdio nonblocking\n"
 #endif
          );
   if (err == 0) exit_success();
@@ -211,7 +215,7 @@ static sexp check_exception (sexp ctx, sexp res) {
     if (! sexp_oportp(err))
       err = sexp_make_output_port(ctx, stderr, SEXP_FALSE);
     sexp_print_exception(ctx, res, err);
-    sexp_stack_trace(ctx, err);
+    sexp_print_exception_stack_trace(ctx, res, err);
 #if SEXP_USE_MAIN_ERROR_ADVISE
     if (sexp_envp(sexp_global(ctx, SEXP_G_META_ENV))) {
       advise = sexp_eval_string(ctx, sexp_advice_environment, -1, sexp_global(ctx, SEXP_G_META_ENV));
@@ -316,7 +320,7 @@ sexp run_main (int argc, char **argv) {
     main_symbol = "main";
     /* skip option parsing since we can't pass `--` before the name of script */
     /* to avoid misinterpret the name as options when the interpreter is */
-    /* executed via `#!/usr/env/bin scheme-r7rs` shebang.  */
+    /* executed via `#!/usr/bin/env scheme-r7rs` shebang.  */
     i = 1;
     goto done_options;
   }
@@ -516,6 +520,10 @@ sexp run_main (int argc, char **argv) {
 #if SEXP_USE_MODULES
       check_nonull_arg('t', arg);
       suffix = strrchr(arg, '.');
+      if (suffix == NULL) {
+        fprintf(stderr, "trace expected: -t module.name.binding, e.g. srfi.1.iota, but got %s\n", arg);
+        break;
+      }
       sym = sexp_intern(ctx, suffix + 1, -1);
       *(char*)suffix = '\0';
       impmod = make_import(sexp_trace_prefix, arg, sexp_trace_suffix);
@@ -545,15 +553,22 @@ sexp run_main (int argc, char **argv) {
  done_options:
   if (!quit || main_symbol != NULL) {
     init_context();
-    /* build argument list */
-    if (i < argc)
-      for (j=argc-1; j>=i; j--)
-        args = sexp_cons(ctx, tmp=sexp_c_string(ctx,argv[j],-1), args);
-    /* if no script name, use interpreter name */
-    if (i >= argc || main_module != NULL)
-      args = sexp_cons(ctx, tmp=sexp_c_string(ctx,argv[0],-1), args);
     load_init(i < argc || main_symbol != NULL);
-    sexp_set_parameter(ctx, sexp_meta_env(ctx), sym=sexp_intern(ctx, sexp_argv_symbol, -1), args);
+    tmp = SEXP_FALSE;
+    if ((i < argc) && !main_symbol)
+      tmp = sexp_c_string(ctx,argv[i],-1);
+    sexp_env_define(
+      ctx, sexp_meta_env(ctx),
+      sym=sexp_intern(ctx, sexp_raw_script_file_symbol, -1), tmp);
+    for (j=argc-1; j>=i; j--)
+      args = sexp_cons(ctx, tmp=sexp_c_string(ctx,argv[j],-1), args);
+    if (main_symbol)
+      args = sexp_cons(ctx, tmp=sexp_c_string(ctx,main_symbol,-1), args);
+    if (args == SEXP_NULL)
+      args = sexp_cons(ctx, tmp=sexp_c_string(ctx,"",-1), args);
+    sexp_set_parameter(
+      ctx, sexp_meta_env(ctx),
+      sym=sexp_intern(ctx, sexp_command_line_symbol, -1), args);
     if (i >= argc && main_symbol == NULL) {
       /* no script or main, run interactively */
       repl(ctx, env);

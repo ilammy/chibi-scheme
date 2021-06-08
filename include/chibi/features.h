@@ -1,5 +1,5 @@
 /*  features.h -- general feature configuration               */
-/*  Copyright (c) 2009-2015 Alex Shinn.  All rights reserved. */
+/*  Copyright (c) 2009-2021 Alex Shinn.  All rights reserved. */
 /*  BSD-style license: http://synthcode.com/license.txt       */
 
 /* uncomment this to disable most features */
@@ -63,6 +63,15 @@
 /*   enable this when debugging your own extensions, or */
 /*   if you suspect a bug in the native GC. */
 /* #define SEXP_USE_BOEHM 1 */
+
+/* uncomment this to enable automatic file descriptor unification */
+/*   File descriptors as returned by C functions are raw integers, */
+/*   which are convereted to GC'ed first-class objects on the Scheme */
+/*   side.  By default we assume that each fd is new, however if this */
+/*   option is enabled and an fd is returned which matches an existing */
+/*   open fd, they are assumed to refer to the same descriptor and */
+/*   unified. */
+/* #define SEXP_USE_UNIFY_FILENOS_BY_NUMBER 1 */
 
 /* uncomment this to disable weak references */
 /* #define SEXP_USE_WEAK_REFERENCES 0 */
@@ -172,6 +181,18 @@
 /*   This includes the trigonometric and expt functions. */
 /*   Automatically disabled if you've disabled flonums. */
 /* #define SEXP_USE_MATH 0 */
+
+/* uncomment this to enable lenient matching of top-level bindings */
+/*   Historically, to match behavior with some other Schemes and in */
+/*   hopes of making it easier to use macros and modules, Chibi allowed */
+/*   top-level bindings with the same underlying symbol name to match */
+/*   with identifier=?.  In particular, there still isn't a good way */
+/*   to handle the case where auxiliary syntax conflicts with some other */
+/*   binding without renaming one or the other (though SRFI 206 helps). */
+/*   However, if people make use of this you can write Chibi programs */
+/*   which don't work portably in other implementations, which has been */
+/*   a source of confusion, so the default has reverted to strict R7RS. */
+/* #define SEXP_USE_STRICT_TOPLEVEL_BINDINGS 0 */
 
 /* uncomment this to disable warning about references to undefined variables */
 /*   This is something of a hack, but can be quite useful. */
@@ -308,7 +329,7 @@
 /************************************************************************/
 
 #ifndef SEXP_64_BIT
-#if defined(__amd64) || defined(__x86_64) || defined(_WIN64) || defined(_Wp64) || defined(__LP64__) || defined(__PPC64__) || defined(__mips64__) || defined(__sparc64__)
+#if defined(__amd64) || defined(__x86_64) || defined(_WIN64) || defined(_Wp64) || defined(__LP64__) || defined(__PPC64__) || defined(__mips64__) || defined(__sparc64__) || defined(__arm64)
 #define SEXP_64_BIT 1
 #else
 #define SEXP_64_BIT 0
@@ -452,8 +473,16 @@
 #define SEXP_USE_BOEHM 0
 #endif
 
+#ifdef SEXP_USE_UNIFY_FILENOS_BY_NUMBER
+#define SEXP_USE_UNIFY_FILENOS_BY_NUMBER 0
+#endif
+
 #ifndef SEXP_USE_WEAK_REFERENCES
+#if SEXP_USE_UNIFY_FILENOS_BY_NUMBER
+#define SEXP_USE_WEAK_REFERENCES 1
+#else
 #define SEXP_USE_WEAK_REFERENCES ! SEXP_USE_NO_FEATURES
+#endif
 #endif
 
 #ifndef SEXP_USE_FIXED_CHUNK_SIZE_HEAPS
@@ -553,7 +582,7 @@
 #endif
 
 #ifndef SEXP_USE_STRICT_TOPLEVEL_BINDINGS
-#define SEXP_USE_STRICT_TOPLEVEL_BINDINGS 0
+#define SEXP_USE_STRICT_TOPLEVEL_BINDINGS 1
 #endif
 
 #if SEXP_USE_STRICT_TOPLEVEL_BINDINGS

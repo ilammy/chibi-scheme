@@ -279,11 +279,11 @@ static struct sexp_type_struct _sexp_type_specs[] = {
   {(sexp)"Input-Port", SEXP_FALSE, SEXP_FALSE, SEXP_FALSE, SEXP_FALSE, SEXP_FALSE, NULL, NULL, SEXP_FINALIZE_PORTN, SEXP_IPORT, sexp_offsetof(port, name), 3, 3, 0, 0, sexp_sizeof(port), 0, 0, 0, 0, 0, 0, 0, 0, SEXP_FINALIZE_PORT},
   {(sexp)"Output-Port", SEXP_FALSE, SEXP_FALSE, SEXP_FALSE, SEXP_FALSE, SEXP_FALSE, NULL, NULL, SEXP_FINALIZE_PORTN, SEXP_OPORT, sexp_offsetof(port, name), 3, 3, 0, 0, sexp_sizeof(port), 0, 0, 0, 0, 0, 0, 0, 0, SEXP_FINALIZE_PORT},
   {(sexp)"File-Descriptor", SEXP_FALSE, SEXP_FALSE, SEXP_FALSE, SEXP_FALSE, SEXP_FALSE, NULL, NULL, SEXP_FINALIZE_FILENON, SEXP_FILENO, 0, 0, 0, 0, 0, sexp_sizeof(fileno), 0, 0, 0, 0, 0, 0, 0, 0, SEXP_FINALIZE_FILENO},
-  {(sexp)"Exception", SEXP_FALSE, SEXP_FALSE, SEXP_FALSE, SEXP_FALSE, SEXP_FALSE, (sexp)sexp_write_simple_object, NULL, NULL, SEXP_EXCEPTION, sexp_offsetof(exception, kind), 5, 5, 0, 0, sexp_sizeof(exception), 0, 0, 0, 0, 0, 0, 0, 0, NULL},
+  {(sexp)"Exception", SEXP_FALSE, SEXP_FALSE, SEXP_FALSE, SEXP_FALSE, SEXP_FALSE, (sexp)sexp_write_simple_object, NULL, NULL, SEXP_EXCEPTION, sexp_offsetof(exception, kind), 6, 6, 0, 0, sexp_sizeof(exception), 0, 0, 0, 0, 0, 0, 0, 0, NULL},
   {(sexp)"Procedure", SEXP_FALSE, SEXP_FALSE, SEXP_FALSE, SEXP_FALSE, SEXP_FALSE, NULL, NULL, NULL, SEXP_PROCEDURE, sexp_offsetof(procedure, bc), 2, 2, 0, 0, sexp_sizeof(procedure), 0, 0, 0, 0, 0, 0, 0, 0, NULL},
   {(sexp)"Macro", SEXP_FALSE, SEXP_FALSE, SEXP_FALSE, SEXP_FALSE, SEXP_FALSE, NULL, NULL, NULL, SEXP_MACRO, sexp_offsetof(macro, proc), 4, 4, 0, 0, sexp_sizeof(macro), 0, 0, 0, 0, 0, 0, 0, 0, NULL},
   {(sexp)"Sc", SEXP_FALSE, SEXP_FALSE, SEXP_FALSE, SEXP_FALSE, SEXP_FALSE, (sexp)sexp_write_simple_object, NULL, NULL, SEXP_SYNCLO, sexp_offsetof(synclo, env), 4, 4, 0, 0, sexp_sizeof(synclo), 0, 0, 0, 0, 0, 0, 0, 0, NULL},
-  {(sexp)"Environment", SEXP_FALSE, SEXP_FALSE, SEXP_FALSE, SEXP_FALSE, SEXP_FALSE, NULL, NULL, NULL, SEXP_ENV, sexp_offsetof(env, parent), 3+SEXP_USE_RENAME_BINDINGS, 3+SEXP_USE_RENAME_BINDINGS, 0, 0, sexp_sizeof(env), 0, 0, 0, 0, 0, 0, 0, 0, NULL},
+  {(sexp)"Environment", SEXP_FALSE, SEXP_FALSE, SEXP_FALSE, SEXP_FALSE, SEXP_FALSE, NULL, NULL, NULL, SEXP_ENV, sexp_offsetof(env, parent), 3+(SEXP_USE_STABLE_ABI||SEXP_USE_RENAME_BINDINGS), 3+(SEXP_USE_STABLE_ABI||SEXP_USE_RENAME_BINDINGS), 0, 0, sexp_sizeof(env), 0, 0, 0, 0, 0, 0, 0, 0, NULL},
   {(sexp)"Bytecode", SEXP_FALSE, SEXP_FALSE, SEXP_FALSE, SEXP_FALSE, SEXP_FALSE, NULL, NULL, NULL, SEXP_BYTECODE, sexp_offsetof(bytecode, name), 3, 3, 0, 0, sexp_sizeof(bytecode), offsetof(struct sexp_struct, value.bytecode.length), 1, 0, 0, 0, 0, 0, 0, NULL},
   {(sexp)"Core-Form", SEXP_FALSE, SEXP_FALSE, SEXP_FALSE, SEXP_FALSE, SEXP_FALSE, NULL, NULL, NULL, SEXP_CORE, sexp_offsetof(core, name), 1, 1, 0, 0, sexp_sizeof(core), 0, 0, 0, 0, 0, 0, 0, 0, NULL},
 #if SEXP_USE_STABLE_ABI || SEXP_USE_DL
@@ -731,6 +731,7 @@ sexp sexp_make_exception (sexp ctx, sexp kind, sexp message, sexp irritants,
   sexp_exception_irritants(exn) = irritants;
   sexp_exception_procedure(exn) = procedure;
   sexp_exception_source(exn) = source;
+  sexp_exception_stack_trace(exn) = SEXP_FALSE;
   return exn;
 }
 
@@ -755,6 +756,22 @@ sexp sexp_user_exception (sexp ctx, sexp self, const char *ms, sexp ir) {
                              ? ir : (irr = sexp_list1(ctx, ir))),
                             self, SEXP_FALSE);
   sexp_gc_release3(ctx);
+  return res;
+}
+
+sexp sexp_user_exception_ls (sexp ctx, sexp self, const char *msg, int n, ...) {
+  int i;
+  va_list ap;
+  sexp_gc_var2(res, ir);
+  sexp_gc_preserve2(ctx, res, ir);
+  va_start(ap, n);
+  for (i=0, ir=SEXP_NULL; i < n; ++i) {
+    ir = sexp_cons(ctx, va_arg(ap, sexp), ir);
+  }
+  ir = sexp_nreverse(ctx, ir);
+  res = sexp_user_exception(ctx, self, msg, ir);
+  sexp_gc_release2(ctx);
+  va_end(ap);
   return res;
 }
 
@@ -1799,7 +1816,9 @@ sexp sexp_make_ephemeron_op(sexp ctx, sexp self, sexp_sint_t n, sexp key, sexp v
   }
   return res;
 }
+#endif /* SEXP_USE_WEAK_REFERENCES */
 
+#if SEXP_USE_UNIFY_FILENOS_BY_NUMBER
 static sexp* sexp_fileno_cell(sexp ctx, sexp vec, int fd) {
   sexp *data;
   sexp_sint_t i, cell, len;
@@ -1809,7 +1828,9 @@ static sexp* sexp_fileno_cell(sexp ctx, sexp vec, int fd) {
   if (len == 0)
     return NULL;
   data = sexp_vector_data(vec);
-  for (i = 0, cell = (fd * FNV_PRIME) % len; i < len; i++, cell=(cell+1)%len)
+  cell = (fd * FNV_PRIME) % len;
+  if (cell < 0) cell += len;
+  for (i = 0; i < len; i++, cell=(cell+1)%len)
     if (!sexp_ephemeronp(data[cell])
         || (sexp_filenop(sexp_ephemeron_key(data[cell]))
             && sexp_fileno_fd(sexp_ephemeron_key(data[cell])) == fd))
@@ -1820,8 +1841,11 @@ static sexp* sexp_fileno_cell(sexp ctx, sexp vec, int fd) {
 static sexp sexp_lookup_fileno(sexp ctx, int fd) {
   sexp* cell = sexp_fileno_cell(ctx, sexp_global(ctx, SEXP_G_FILE_DESCRIPTORS), fd);
   if (cell && sexp_ephemeronp(*cell)
-      && sexp_fileno_fd(sexp_ephemeron_key(*cell)) == fd)
-    return sexp_ephemeron_key(*cell);
+      && sexp_filenop(sexp_ephemeron_key(*cell))
+      && sexp_fileno_fd(sexp_ephemeron_key(*cell)) == fd) {
+    if (sexp_fileno_openp(sexp_ephemeron_key(*cell)))
+      return sexp_ephemeron_key(*cell);
+  }
   return SEXP_FALSE;
 }
 
@@ -1856,13 +1880,13 @@ static void sexp_insert_fileno(sexp ctx, sexp fileno) {
     n++;
   sexp_global(ctx, SEXP_G_NUM_FILE_DESCRIPTORS) = sexp_make_fixnum(n);
 }
-#endif
+#endif  /* SEXP_USE_UNIFY_FILENOS_BY_NUMBER */
 
 sexp sexp_make_fileno_op (sexp ctx, sexp self, sexp_sint_t n, sexp fd, sexp no_closep) {
   sexp_gc_var1(res);
   sexp_assert_type(ctx, sexp_fixnump, SEXP_FIXNUM, fd);
   if (sexp_unbox_fixnum(fd) < 0) return SEXP_FALSE;
-#if SEXP_USE_WEAK_REFERENCES
+#if SEXP_USE_UNIFY_FILENOS_BY_NUMBER
   res = sexp_lookup_fileno(ctx, sexp_unbox_fixnum(fd));
   if (sexp_filenop(res)) {
     sexp_fileno_no_closep(res) = sexp_truep(no_closep);
@@ -1876,7 +1900,7 @@ sexp sexp_make_fileno_op (sexp ctx, sexp self, sexp_sint_t n, sexp fd, sexp no_c
     sexp_fileno_fd(res) = sexp_unbox_fixnum(fd);
     sexp_fileno_openp(res) = 1;
     sexp_fileno_no_closep(res) = sexp_truep(no_closep);
-#if SEXP_USE_WEAK_REFERENCES
+#if SEXP_USE_UNIFY_FILENOS_BY_NUMBER
     sexp_insert_fileno(ctx, res);
 #endif
   }
@@ -1903,7 +1927,7 @@ sexp sexp_make_input_port (sexp ctx, FILE* in, sexp name) {
 #if SEXP_USE_FOLD_CASE_SYMS
   sexp_port_fold_casep(p) = sexp_truep(sexp_global(ctx, SEXP_G_FOLD_CASE_P));
 #endif
-#if SEXP_USE_WEAK_REFERENCES
+#if SEXP_USE_UNIFY_FILENOS_BY_NUMBER
   /* if the fd was previously opened by a non-stream port, preserve it */
   /* here to avoid gc timing issues */
   if (in && fileno(in) >= 0) {
@@ -3052,7 +3076,7 @@ sexp sexp_list_to_uvector_op(sexp ctx, sexp self, sexp_sint_t n, sexp etype, sex
 #if SEXP_USE_UNIFORM_VECTOR_LITERALS
           ((sexp_uvector_prefix(et) == 'u') || (sexp_uvector_prefix(et) == 's')) ?
 #endif
-          !(sexp_exact_integerp(tmp) && sexp_sint_value(tmp) >= min
+          !((min == 0 && sexp_bignump(tmp) ? sexp_bignum_sign(tmp) > 0 : sexp_exact_integerp(tmp) && sexp_sint_value(tmp) >= min)
             && (sexp_sint_value(tmp) < 0 || sexp_uint_value(tmp) <= max))
 #if SEXP_USE_UNIFORM_VECTOR_LITERALS
           : ((sexp_uvector_prefix(et) == 'c') ? !sexp_numberp(tmp) :
