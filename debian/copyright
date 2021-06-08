@@ -67,6 +67,10 @@ Files: lib/srfi/165.scm lib/srfi/165.sld
 Copyright: 2019 Marc Nieper-Wißkirchen
 License: Expat
 
+Files: lib/srfi/193.sld lib/srfi/219.sld lib/srfi/219/test.sld
+Copyright: 2021 Lassi Kortela <lassi@lassi.io>
+License: BSD-3-clause
+
 Files: debian/*
 Copyright: 2019 Alexei Lozovsky <me@ilammy.net>
 License: BSD-3-clause
