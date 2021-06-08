@@ -1,0 +1,31 @@
+From: Alexei Lozovsky <me@ilammy.net>
+Date: Sat, 5 Jun 2021 19:02:34 +0900
+Subject: Fix usage of signbit() in SRFI 144
+
+(cherry picked from commit 6f35aa75f41bf4c9d09cd4a21bbe26b270cc0d62)
+
+(submitted upstream, not yet released)
+
+Resolves test suite failures on multiple architectures, including in
+particular i386, armel, armhf.
+---
+ lib/srfi/144/math.stub | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/lib/srfi/144/math.stub b/lib/srfi/144/math.stub
+index b6ebf5d5..d0abbcf0 100644
+--- a/lib/srfi/144/math.stub
++++ b/lib/srfi/144/math.stub
+@@ -102,7 +102,8 @@
+ 
+ (define-c double frexp (double (result int)))
+ 
+-(define-c int (sign-bit "signbit") (double))
++(c-declare "#define sign_bit(v) (!!signbit(v))")
++(define-c int sign-bit (double))
+ 
+ (define-c boolean (flfinite? "isfinite") (double))
+ (define-c boolean (flinfinite? "isinf") (double))
+-- 
+2.25.1
+
