@@ -231,6 +231,7 @@ libchibi-scheme.so.0 libchibi-scheme0 #MINVER#
  sexp_preserve_object@Base 0.8.0
  sexp_primitive_opcodes@Base 0.8.0
  sexp_print_exception_op@Base 0.8.0
+ sexp_print_exception_stack_trace_op@Base 0.10.0
  sexp_push_op@Base 0.8.0
  sexp_push_utf8_char@Base 0.8.0
  sexp_quotient@Base 0.8.0
@@ -315,6 +316,7 @@ libchibi-scheme.so.0 libchibi-scheme0 #MINVER#
  sexp_type_exception@Base 0.8.0
  sexp_type_slot_offset_op@Base 0.8.0
  sexp_user_exception@Base 0.8.0
+ sexp_user_exception_ls@Base 0.10.0
  sexp_utf8_char_byte_count@Base 0.8.0
  sexp_utf8_encode_char@Base 0.8.0
  sexp_utf8_initial_byte_count@Base 0.8.0
