@@ -1,3 +1,9 @@
+chibi-scheme (0.10.0-1) UNRELEASED; urgency=medium
+
+  * New upstream release
+
+ -- Alexei Lozovsky <me@ilammy.net>  Tue, 08 Jun 2021 17:07:21 +0900
+
 chibi-scheme (0.9.1-3) unstable; urgency=medium
 
   * Adjust debian/rules to upstream Makefile API change
