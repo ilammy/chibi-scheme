@@ -19,7 +19,7 @@ _chibi_modules()
 _chibi_scheme()
 {
     local curr prev
-    local opts="-V -q -Q -r -R -s -f -T -h -I -A -D -m -x -l -e -p -t -d -i"
+    local opts="-V -q -Q -r -R -s -f -T -h -I -A -D -m -x -l -e -p -t -d -i -b"
     local sizes="1M 2M 4M 8M 16M 32M 64M 128M 256M 512M 1G 2G 4G"
 
     COMPREPLY=()
