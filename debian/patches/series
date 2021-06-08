@@ -4,6 +4,5 @@
 0013-remove-chibi-ffi-debug-chatter.patch
 0014-silence-warnings-when-no-config.patch
 0015-spelling.patch
-0016-fix-unaligned-access-in-bytevector.patch
 0017-fix-usage-of-signbit-in-SRFI-144.patch
 0018-initialize-variables-in-FFI-tests.patch
